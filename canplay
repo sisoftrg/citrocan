@@ -1,0 +1,52 @@
+#!/usr/bin/perl -w
+
+use Time::HiRes qw/gettimeofday usleep/;
+
+$port="/dev/ttyUSB0";
+$speed=460800;
+
+$|=1;
+open P,"+<$port" or die $!;
+system "stty -F $port ispeed $speed ospeed $speed -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke ignbrk -brkint -icrnl -imaxbel";
+
+sub getb {
+    my($a);
+    sysread P,$a,1 or die $!;
+    my($b)=unpack('C1',$a);
+    return $b;
+}
+
+sub putb {
+    my($a)=pack('C1',$_[0]);
+    syswrite P,$a,1 or die $!;
+}
+
+sub puts {
+    syswrite P,$_[0]."\r\n" or die $!;
+}
+
+#puts("036 8 0e 00 00 0f 01 00 00 a0");
+
+my $otm = 0;
+while(<>) {
+    #1459707622.64896 R 115 4 01 00 00 00
+    /^([\d.]+)\s+[RS]\s+([a-f0-9]+)\s+(\d)(\s+[a-f0-9 ]+)?\s*$/ || next;
+    my($tm, $id, $len, $dat) = (1*$1, $2, $3, $4);
+    usleep(($tm - $otm) * 2000000) if $otm && $tm > $otm;
+    $otm = $tm;
+    #print("tm=$tm id=$id len=$len dat=$dat\n");
+    puts("$id $len$dat");
+
+    $buf='';
+    while(1) {
+	my($ev)=getb();
+	if($ev == 10) {
+	    print gettimeofday()." $buf\n" if $buf;
+	    $buf = '';
+	    last;
+	} elsif($ev != 13) {
+	    $buf = $buf . chr($ev);
+	}
+    }
+}
+

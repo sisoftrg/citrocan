@@ -1,0 +1,39 @@
+#!/usr/bin/perl -w
+
+use Time::HiRes qw/gettimeofday/;
+
+$port="/dev/ttyUSB0";
+$speed=460800;
+
+$|=1;
+open P,"+<$port" or die $!;
+system "stty -F $port ispeed $speed ospeed $speed -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke ignbrk -brkint -icrnl -imaxbel";
+
+sub getb {
+    my($a);
+    sysread P,$a,1 or die $!;
+    my($b)=unpack('C1',$a);
+    return $b;
+}
+
+sub putb {
+    my($a)=pack('C1',$_[0]);
+    syswrite P,$a,1 or die $!;
+}
+
+sub puts {
+    syswrite P,$_[0]."\r\n" or die $!;
+}
+
+#puts("036 8 0e 00 00 0f 01 00 00 a0");
+
+$buf='';
+while(1) {
+    my($ev)=getb();
+    if($ev == 10) {
+	print gettimeofday()." $buf\n" if $buf;
+	$buf = '';
+    } elsif($ev != 13) {
+	$buf = $buf . chr($ev);
+    }
+}

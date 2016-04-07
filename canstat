@@ -1,0 +1,19 @@
+#!/usr/bin/perl -w
+
+my %ids;
+while(<>) {
+    /^([\d.]+)\s+R\s+([a-f0-9]+)\s+(\d)(\s+[a-f0-9 ]+)?\s*$/ || next;
+    my($tm, $id, $len, $dat) = (1*$1, $2, int $3, $4);
+    push(@{$ids{$id}}, $dat);
+}
+
+foreach my $id (sort keys %ids) {
+    print("id: $id, count: ".($#{$ids{$id}}+1)."\n");
+    my %u;
+    foreach my $x (@{$ids{$id}}) {
+	$u{$x}++;
+    }
+    foreach my $x (sort keys %u) {
+	print("\t\t\t$x\t($u{$x})\n");
+    }
+}
