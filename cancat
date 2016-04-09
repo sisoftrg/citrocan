@@ -25,7 +25,7 @@ sub puts {
     syswrite P,$_[0]."\r\n" or die $!;
 }
 
-#puts("036 8 0e 00 00 0f 01 00 00 a0");
+#puts("i1");
 
 $buf='';
 while(1) {

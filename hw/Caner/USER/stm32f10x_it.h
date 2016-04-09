@@ -47,6 +47,7 @@ void SysTick_Handler(void);
 void USART1_IRQHandler(void);
 void USB_HP_CAN1_TX_IRQHandler(void);
 void USB_LP_CAN1_RX0_IRQHandler(void);
+extern void TickHandler(void);
 
 #ifdef __cplusplus
 }

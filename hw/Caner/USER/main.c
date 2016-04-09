@@ -11,6 +11,8 @@ uint8_t c_free;
 int r_buf_w, s_buf_w, s_buf_r;
 uint8_t have_cmd, r_buf[R_BUF_SIZE], s_buf[S_BUF_SIZE];
 
+int ignition = 0;
+
 #ifdef USE_FULL_ASSERT
 void assert_failed(uint8_t *file, uint32_t line)
 {
@@ -218,20 +220,35 @@ void CFG_USART(void)
 	USART_Cmd(USART1, ENABLE);
 }
 
+void TickHandler(void)
+{
+	if(ignition)
+		CAN_TxMsg(0x036, 8, (uint8_t[]){0x0e, 0x00, 0x06, 0x0b, 0x01, 0x00, 0x00, 0xa0});
+}
+
 int main(void)
 {
 	CFG_USART();
 	CFG_CAN();
 	delay(2000000);
 
-	printf("\r\nOK\r\n");
+	if(SysTick_Config(SystemCoreClock / 10)) { // every 100ms
+		printf("E CLK\r\n");
+	}
 
-	//CAN_TxMsg(0x018, 5, (uint8_t[]){0x00, 0x00, 0x00, 0x00, 0x00});
-	//CAN_TxMsg(0x036, 8, (uint8_t[]){0x0e, 0x00, 0x00, 0x27, 0x01, 0x00, 0x00, 0xa0});
+	printf("\r\nOK\r\n");
 
 	while(1) {
 		if(have_cmd) {
 			//printf("got cmd: %s\r\n", r_buf);
+
+			if(r_buf[0] == 'i') {
+				ignition = r_buf[1] == '1' ? 1 : 0;
+				printf("I\r\n");
+				have_cmd = 0;
+				continue;
+			}
+
 			int id;
 			uint8_t len, data[8];
 			int ok = sscanf((const char *)r_buf, "%x %hhd %hhx %hhx %hhx %hhx %hhx %hhx %hhx %hhx", &id, &len, &data[0], &data[1], &data[2], &data[3], &data[4], &data[5], &data[6], &data[7]);
