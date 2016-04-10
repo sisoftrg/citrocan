@@ -37,8 +37,8 @@ class Decoder(object):
     ambience_show = False
     radio_mem = 0
     radio_band = ""
-    bands = ['---', 'FM1', 'FM2', 'DAB', 'FMAST', 'AMMW', 'AMLW', '---']
-    radio_freq = 0.0
+    bands = ['---', ' FM1', ' FM2', 'DAB', 'FMAST', 'AMMW', 'AMLW', '---']
+    radio_freq = ""
     radio_ast = False
     radio_scan = False
     rds_search = False
@@ -106,16 +106,21 @@ class Decoder(object):
             if cl == 6:  # b7, from autowp docs
                 self.radio_mem = cd[0] & 7
                 self.radio_band = self.bands[(cd[1] >> 5) & 7]
-                self.radio_freq = ((cd[1] & 0x0f) * 256 + cd[2]) * 0.05 + 50
+                freq = (cd[1] & 0x0f) * 256 + cd[2]
                 self.radio_ast = False
                 self.radio_scan = False
 
             elif cl == 5:  # b3/b5
                 self.radio_mem = (cd[1] >> 4) & 7
                 self.radio_band = self.bands[(cd[2] >> 4) & 7]
-                self.radio_freq = ((cd[3] & 0x0f) * 256 + cd[4]) * 0.05 + 50
+                freq = (cd[3] & 0x0f) * 256 + cd[4]
                 self.radio_ast = bool(cd[0] & 0x08)
                 self.radio_scan = bool(cd[0] & 0x02)
+
+            if self.radio_band in ('AMMW', 'AMLW'):
+                self.radio_freq = "%d KHz" % freq
+            else:
+                self.radio_freq = "%.2f MHz" % (freq * 0.05 + 50)
 
         elif ci == 0x265:  # rds
             self.rds_search = bool(cd[0] & 0x80)
@@ -126,7 +131,7 @@ class Decoder(object):
             self.pty = cd[2]
 
         elif ci == 0x2a5:  # rds title
-            self.rds_name = ''.join([chr(x) for x in cd]).strip()
+            self.rds_name = ''.join([chr(x) for x in cd]).strip() if cd[0] != 0 else None
 
         elif ci == 0x2e5:  # hz
             pass
@@ -187,14 +192,15 @@ class Decoder(object):
 
         elif tuner:
             self.ss('icon', 'radio')
-            self.ss('name', self.rds_name)
+            self.ss('name', self.rds_name or self.radio_freq)
 
         elif cd:
             self.ss('icon', self.cd_mp3 and 'cdmp3' or 'cdaudio')
             self.ss('name', self.cd_disk in (1, 3) and ('Track %d/%d' % (self.track_num, self.cd_tracks)) or "Wait...")
 
         self.ss('band', tuner and self.radio_band or "")
-        self.ss('info', tuner and ("%.2f Mhz" % self.radio_freq) or (cd and ("» %s%s" % (self.track_time, self.track_len != "--:--" and " / " + self.track_len or "")) or ""))
+        self.ss('info', tuner and self.rds_name and self.radio_freq or
+                        (cd and ("» %s%s" % (self.track_time, self.track_len != "--:--" and " / " + self.track_len or "")) or ""))
         self.ss('memch', tuner and self.radio_mem and str(self.radio_mem) or "")
         self.ss('ta', self.enabled and self.have_ta and "TA" or "")
         self.ss('reg', tuner and self.have_reg and "REG" or "")
