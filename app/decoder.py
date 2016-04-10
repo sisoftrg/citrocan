@@ -163,6 +163,9 @@ class Decoder(object):
         elif ci == 0x5e0:  # hw/sw radio info
             pass
 
+        elif ci == 0x0a4:  # current cd track, multiframe
+            pass
+
         elif ci == 0x11f:  # band press, multiframe
             pass
 
