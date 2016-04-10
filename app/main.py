@@ -75,7 +75,12 @@ class Citrocan(App):
 
             if sp:
                 while not self.stop_ev.is_set():
-                    r = sp.read(1)
+                    try:
+                        r = sp.read(1)
+                    except serial.SerialException:
+                        sp.close()
+                        sp = None
+                        r = None
                     if not r:
                         break
                     if r == b'\n':
