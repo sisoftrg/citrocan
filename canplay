@@ -7,7 +7,7 @@ $speed=460800;
 
 $|=1;
 open P,"+<$port" or die $!;
-system "stty -F $port ispeed $speed ospeed $speed -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke ignbrk -brkint -icrnl -imaxbel";
+system "stty -F $port ispeed $speed ospeed $speed -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke ignbrk -brkint -icrnl -imaxbel min 1 time 5";
 
 sub getb {
     my($a);

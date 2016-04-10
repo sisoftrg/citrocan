@@ -10,7 +10,7 @@ $speed=460800;
 
 $|=1;
 open P,"+<$port" or die $!;
-system "stty -F $port ispeed $speed ospeed $speed -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke ignbrk -brkint -icrnl -imaxbel";
+system "stty -F $port ispeed $speed ospeed $speed -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke ignbrk -brkint -icrnl -imaxbel min 1 time 5";
 
 my %ids = (
     0x131=>1,
@@ -27,6 +27,7 @@ my %ids = (
     0x3a5=>12,
     0x3e5=>13,
     0x520=>14,
+    0x5e0=>15,
 
     0x0df=>17,
     0x15b=>18,
