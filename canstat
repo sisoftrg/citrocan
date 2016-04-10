@@ -1,5 +1,9 @@
 #!/usr/bin/perl -w
 
+# Citrocan
+# Copyright (c) 2016 sisoftrg
+# The MIT License (MIT)
+
 my %ids;
 while(<>) {
     /^([\d.]+)\s+R\s+([a-f0-9]+)\s+(\d)(\s+[a-f0-9 ]+)?\s*$/ || next;

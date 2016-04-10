@@ -1,3 +1,9 @@
+/*
+   Citrocan
+   Copyright (c) 2016 sisoftrg
+   The MIT License (MIT)
+*/
+
 #include "stm32f10x.h"
 #include <stdio.h>
 
