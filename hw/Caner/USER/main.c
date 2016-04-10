@@ -222,8 +222,8 @@ void CFG_USART(void)
 
 void TickHandler(void)
 {
-	if(ignition)
-		CAN_TxMsg(0x036, 8, (uint8_t[]){0x0e, 0x00, 0x06, 0x0b, 0x01, 0x00, 0x00, 0xa0});
+	if(ignition == 1)
+		ignition = 2;
 }
 
 int main(void)
@@ -239,6 +239,11 @@ int main(void)
 	printf("\r\nOK\r\n");
 
 	while(1) {
+		if(ignition == 2) {
+			ignition = 1;
+			CAN_TxMsg(0x036, 8, (uint8_t[]){0x0e, 0x00, 0x06, 0x0b, 0x01, 0x00, 0x00, 0xa0});
+		}
+
 		if(have_cmd) {
 			//printf("got cmd: %s\r\n", r_buf);
 

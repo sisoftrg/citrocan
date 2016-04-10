@@ -1,0 +1,99 @@
+#!/usr/bin/perl -w
+
+use Time::HiRes qw/gettimeofday/;
+use Curses;
+
+$SIG{INT} = sub { endwin(); };
+
+$port="/dev/ttyUSB0";
+$speed=460800;
+
+$|=1;
+open P,"+<$port" or die $!;
+system "stty -F $port ispeed $speed ospeed $speed -isig -icanon -iexten -echo -echoe -echok -echoctl -echoke ignbrk -brkint -icrnl -imaxbel";
+
+my %ids = (
+    0x131=>1,
+    0x165=>2,
+    0x1a5=>3,
+    0x1e0=>4,
+    0x1e5=>5,
+    0x225=>6,
+    0x265=>7,
+    0x2a5=>8,
+    0x2e5=>9,
+    0x325=>10,
+    0x365=>11,
+    0x3a5=>12,
+    0x3e5=>13,
+    0x520=>14,
+
+    0x0df=>17,
+    0x15b=>18,
+    0x167=>19,
+    0x525=>20,
+    0x5e5=>21,
+
+    0x3f6=>23,
+
+    0x11f=>25,
+    0x125=>26,
+);
+
+my %idvals;
+
+my $w = Curses->new();
+$w->getmaxyx(my $row, my $col);
+
+sub draw {
+    my($id, @d) = @_;
+    if(exists $ids{$id}) {
+	my $diff = (!exists $idvals{$id}) || join('', @d) ne $idvals{$id};
+	my $l = scalar @d;
+	my $ds = "";
+	my $bs = "";
+	for(my $i=1; $i < $l; $i++) {
+		$ds .= sprintf("%s ", $d[$i]);
+		$bs .= sprintf("%08b ", hex $d[$i]);
+	}
+	$w->addstr($ids{$id} * 2, 1, sprintf("%03x %s %s                    ", $id, $diff ? '*' : ' ', $ds));
+	$w->addstr($ids{$id} * 2, 40, "$bs                   ");
+	$w->move(0, 0);
+	$w->refresh();
+    } else {
+	$w->addstr(0, 0, "unknown id: $id: @d   ");
+    }
+    $idvals{$id} = join('', @d);
+}
+
+sub getb {
+    my($a);
+    sysread P,$a,1 or die $!;
+    my($b)=unpack('C1',$a);
+    return $b;
+}
+
+sub putb {
+    my($a)=pack('C1',$_[0]);
+    syswrite P,$a,1 or die $!;
+}
+
+sub puts {
+    syswrite P,$_[0]."\r\n" or die $!;
+}
+
+puts("i1");
+
+$buf='';
+while(1) {
+    my($ev)=getb();
+    if($ev == 10) {
+	if($buf =~ /^R\s+([a-f0-9]+)\s+(\d)(\s+[a-f0-9 ]+)$/) {
+		my($id, $len, $dat) = ($1, $2, $3);
+		draw(hex $id, split(/ /, $dat));
+	}
+	$buf = '';
+    } elsif($ev != 13) {
+	$buf = $buf . chr($ev);
+    }
+}
