@@ -32,11 +32,11 @@ class Citrocan(App):
     d_vol = StringProperty()
     d_band = StringProperty()
     d_name = StringProperty()
-    d_freq = StringProperty()
+    d_info = StringProperty()
     d_memch = StringProperty()
     d_rds = StringProperty()
     d_ta = StringProperty()
-    d_rdtxt = StringProperty()
+    d_rdtxt_rnd = StringProperty()
     d_reg = StringProperty()
     d_loud = StringProperty()
     d_icon = StringProperty("icon")
@@ -92,7 +92,7 @@ class Citrocan(App):
                                 dec.decode(cid, clen, cflds)
                             except (TypeError, ValueError, IndexError) as e:
                                 print("can't decode:", buf, e)
-                        elif buf[0] == 'I':
+                        elif len(buf) and buf[0] == 'I':
                             ready = True
                         buf = ""
                     elif r >= b' ':

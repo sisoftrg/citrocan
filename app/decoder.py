@@ -46,6 +46,9 @@ class Decoder(object):
     have_pty = False
     show_pty = False
     pty = 0
+    cd_tracks = 0
+    cd_len = ""
+    cd_mp3 = 0
     track_num = 0
     track_time = ""
     track_len = ""
@@ -67,7 +70,8 @@ class Decoder(object):
             self.silence = bool(cd[0] & 0x20)
             self.source = self.srcs[(cd[2] >> 4) & 7]
             self.have_changer = bool(cd[1] & 0x10)
-            self.cd_disk = ((cd[1] >> 5) & 3) ^ 1
+            if 0:  # for b7?
+                self.cd_disk = ((cd[1] >> 5) & 3) ^ 1
 
         elif ci == 0x1a5:  # volume
             self.volume = cd[0] & 0x1f
@@ -109,7 +113,7 @@ class Decoder(object):
                 self.radio_mem = (cd[1] >> 4) & 7
                 self.radio_band = self.bands[(cd[2] >> 4) & 7]
                 self.radio_freq = ((cd[3] & 0x0f) * 256 + cd[4]) * 0.05 + 50
-                self.radio_ast = bool(cd[0] & 0x10)
+                self.radio_ast = bool(cd[0] & 0x08)
                 self.radio_scan = bool(cd[0] & 0x02)
 
         elif ci == 0x265:  # rds
@@ -126,11 +130,13 @@ class Decoder(object):
         elif ci == 0x2e5:  # hz
             pass
 
-        elif ci == 0x325:  # hz
-            pass
+        elif ci == 0x325:  # cd tray info
+            self.cd_disk = cd[1] & 0x83
 
-        elif ci == 0x365:  # hz
-            pass
+        elif ci == 0x365:  # cd disk info
+            self.cd_tracks = cd[0]
+            self.cd_len = "%02d:%02d" % (cd[1], cd[2]) if cd[1] != 0xff else "--:--"
+            self.cd_mp3 = bool(cd[3] & 0x01)
 
         elif ci == 0x3a5:  # cd track info
             self.track_num = cd[0]
@@ -179,13 +185,17 @@ class Decoder(object):
             self.ss('icon', 'radio')
             self.ss('name', '')  # TEMP!!!
 
+        elif cd:
+            self.ss('icon', self.cd_mp3 and 'cdmp3' or 'cdaudio')
+            self.ss('name', self.cd_disk in (1, 3) and ('Track %d/%d' % (self.track_num, self.cd_tracks)) or "Wait...")
+
         self.ss('band', tuner and self.radio_band or "")
-        self.ss('freq', tuner and ("%.2f Mhz" % self.radio_freq) or "")
+        self.ss('info', tuner and ("%.2f Mhz" % self.radio_freq) or (cd and ("» %s%s" % (self.track_time, self.track_len != "--:--" and " / " + self.track_len or "")) or ""))
         self.ss('memch', tuner and self.radio_mem and str(self.radio_mem) or "")
         self.ss('ta', self.enabled and self.have_ta and "TA" or "")
         self.ss('reg', tuner and self.have_reg and "REG" or "")
         self.ss('rds', tuner and self.rds and "RDS" or "")
-        self.ss('rdtxt', tuner and self.radiotext and "RDTXT" or "")
+        self.ss('rdtxt_rnd', tuner and self.radiotext and "RDTXT" or (cd and self.random and "RDM" or (cd and self.track_intro and "INT" or "")))
         self.ss('loud', self.enabled and self.loudness and "LOUD" or "")
         self.ss('vol', self.enabled and ("Vol: [b]%d[/b]" % self.volume) or "")
 
