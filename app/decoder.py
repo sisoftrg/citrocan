@@ -47,6 +47,7 @@ class Decoder(object):
     have_pty = False
     show_pty = False
     pty = 0
+    rds_name = ""
     cd_tracks = 0
     cd_len = ""
     cd_mp3 = 0
@@ -124,8 +125,8 @@ class Decoder(object):
             self.show_pty = bool(cd[1] & 0x40)
             self.pty = cd[2]
 
-        elif ci == 0x2a5:  # hz
-            pass
+        elif ci == 0x2a5:  # rds title
+            self.rds_name = ''.join([chr(x) for x in cd]).strip()
 
         elif ci == 0x2e5:  # hz
             pass
@@ -186,7 +187,7 @@ class Decoder(object):
 
         elif tuner:
             self.ss('icon', 'radio')
-            self.ss('name', '')  # TEMP!!!
+            self.ss('name', self.rds_name)
 
         elif cd:
             self.ss('icon', self.cd_mp3 and 'cdmp3' or 'cdaudio')
