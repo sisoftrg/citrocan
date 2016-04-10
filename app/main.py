@@ -4,23 +4,22 @@
 # Copyright (c) 2016 sisoftrg
 # The MIT License (MIT)
 
-__version__ = '1.0'
-
-Port = "/dev/ttyUSB0"
-
 import time
-import serial
 import threading
+import serial
 
 import kivy
-kivy.require('1.9.0')
-
 from kivy.app import App
 from kivy.clock import Clock, mainthread
 from kivy.core.window import Window
-from kivy.properties import NumericProperty, StringProperty
+from kivy.properties import StringProperty
 
 from decoder import Decoder
+
+kivy.require('1.9.0')
+__version__ = '1.0'
+
+Port = "/dev/ttyUSB0"
 
 
 class Citrocan(App):
@@ -46,7 +45,7 @@ class Citrocan(App):
         Clock.schedule_interval(self.update_time, .5)
         threading.Thread(target=self.get_candata).start()
 
-    def update_time(self, *args):
+    def update_time(self, *_):
         self.d_time = time.strftime("%H %M" if ':' in self.d_time else "%H:%M")
         self.d_date = time.strftime("%a %d/%m/%Y")
 

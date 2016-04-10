@@ -2,6 +2,7 @@
 # Copyright (c) 2016 sisoftrg
 # The MIT License (MIT)
 
+
 class Decoder(object):
 
     cb = {}
@@ -70,8 +71,7 @@ class Decoder(object):
             self.silence = bool(cd[0] & 0x20)
             self.source = self.srcs[(cd[2] >> 4) & 7]
             self.have_changer = bool(cd[1] & 0x10)
-            if 0:  # for b7?
-                self.cd_disk = ((cd[1] >> 5) & 3) ^ 1
+            #self.cd_disk = ((cd[1] >> 5) & 3) ^ 1  # for b7?
 
         elif ci == 0x1a5:  # volume
             self.volume = cd[0] & 0x1f
@@ -198,4 +198,3 @@ class Decoder(object):
         self.ss('rdtxt_rnd', tuner and self.radiotext and "RDTXT" or (cd and self.random and "RDM" or (cd and self.track_intro and "INT" or "")))
         self.ss('loud', self.enabled and self.loudness and "LOUD" or "")
         self.ss('vol', self.enabled and ("Vol: [b]%d[/b]" % self.volume) or "")
-
