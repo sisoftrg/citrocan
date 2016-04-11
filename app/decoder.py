@@ -62,6 +62,18 @@ class Decoder(object):
     def __init__(self, ss):
         self.ss = ss
 
+    @staticmethod
+    def get_str(b):
+        ba = bytes(b).strip(b'\0')
+        try:
+            s = ba.decode('utf8')
+        except UnicodeDecodeError:
+            try:
+                s = ba.decode('cp1251')
+            except:
+                s = ""
+        return s.strip()
+
     def parse_mf(self, ci, cl, cd):
         typ = (cd[0] & 0xf0) >> 4
         arg = cd[0] & 0x0f
@@ -160,7 +172,7 @@ class Decoder(object):
             self.pty = cd[2]
 
         elif ci == 0x2a5:  # rds title
-            self.rds_name = bytes(cd).strip(b'\0').decode('cp1251').strip() if cd[0] != 0 else None
+            self.rds_name = self.get_str(cd) if cd[0] != 0 else None
 
         elif ci == 0x2e5:  # hz
             pass
@@ -204,8 +216,8 @@ class Decoder(object):
                 return
             cd = dd[1]
             ha = bool(cd[2] & 0x10)
-            self.track_author = ha and bytes(cd[4:24]).strip(b'\0').decode('cp1251') or ""
-            self.track_name = bytes(ha and cd[24:44] or cd[4:24]).strip(b'\0').decode('cp1251')
+            self.track_author = ha and self.get_str(cd[4:24]) or ""
+            self.track_name = self.get_str(ha and cd[24:44] or cd[4:24])
 
         elif ci == 0x11f:  # band press, multiframe
             pass
