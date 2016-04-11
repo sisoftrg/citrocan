@@ -32,6 +32,7 @@ class Citrocan(App):
     d_band = StringProperty()
     d_name = StringProperty()
     d_info = StringProperty()
+    d_title = StringProperty()
     d_memch = StringProperty()
     d_rds = StringProperty()
     d_ta = StringProperty()

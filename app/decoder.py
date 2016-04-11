@@ -6,6 +6,7 @@
 class Decoder(object):
 
     cb = {}
+    mfs = {}
     enabled = False
     silence = False
     source = ""
@@ -54,10 +55,38 @@ class Decoder(object):
     track_num = 0
     track_time = ""
     track_len = ""
+    track_name = ""
+    track_author = ""
     key = {}
 
     def __init__(self, ss):
         self.ss = ss
+
+    def parse_mf(self, ci, cl, cd):
+        typ = (cd[0] & 0xf0) >> 4
+        arg = cd[0] & 0x0f
+        if typ == 0:  # single
+            return (arg, cd[1:min(1 + arg, cl)])
+        elif typ == 1:  # first
+            fl = arg * 256 + cd[1]
+            el = fl - (cl - 2)
+            self.mfs[ci] = [fl, el, cd[2:cl]]
+        elif typ == 2:  # consecutive. TODO: check frame order!
+            if ci not in self.mfs:
+                return None
+            el = self.mfs[ci][1]
+            if el > cl - 1:
+                self.mfs[ci][1] -= cl - 1
+                self.mfs[ci][2] += cd[1:cl]
+            else:
+                fl = self.mfs[ci][0]
+                d = self.mfs[ci][2] + cd[1:min(cl, el + 2)]
+                del self.mfs[ci]
+                # print("got mf:", ''.join('{:02x}'.format(x) for x in d))
+                return (fl, d)
+        elif typ == 3:  # flow, packets not for us
+            pass
+        return None
 
     def decode(self, ci, cl, cd):
         if ci in self.cb and cd == self.cb[ci]:
@@ -131,7 +160,7 @@ class Decoder(object):
             self.pty = cd[2]
 
         elif ci == 0x2a5:  # rds title
-            self.rds_name = ''.join([chr(x) for x in cd]).strip() if cd[0] != 0 else None
+            self.rds_name = bytes(cd).strip(b'\0').decode('cp1251').strip() if cd[0] != 0 else None
 
         elif ci == 0x2e5:  # hz
             pass
@@ -170,7 +199,13 @@ class Decoder(object):
             pass
 
         elif ci == 0x0a4:  # current cd track, multiframe
-            pass
+            dd = self.parse_mf(ci, cl, cd)
+            if not dd:
+                return
+            cd = dd[1]
+            ha = bool(cd[2] & 0x10)
+            self.track_author = ha and bytes(cd[4:24]).strip(b'\0').decode('cp1251') or ""
+            self.track_name = bytes(ha and cd[24:44] or cd[4:24]).strip(b'\0').decode('cp1251')
 
         elif ci == 0x11f:  # band press, multiframe
             pass
@@ -208,3 +243,4 @@ class Decoder(object):
         self.ss('rdtxt_rnd', tuner and self.radiotext and "RDTXT" or (cd and self.random and "RDM" or (cd and self.track_intro and "INT" or "")))
         self.ss('loud', self.enabled and self.loudness and "LOUD" or "")
         self.ss('vol', self.enabled and ("Vol: [b]%d[/b]" % self.volume) or "")
+        self.ss('title', cd and (self.track_name + (self.track_author and (" / %s" % self.track_author) or "")) or "")
