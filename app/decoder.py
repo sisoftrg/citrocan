@@ -78,6 +78,7 @@ class Decoder(object):
         typ = (cd[0] & 0xf0) >> 4
         arg = cd[0] & 0x0f
         if typ == 0:  # single
+            # print("got mf:", hex(ci), ''.join('{:02x}'.format(x) for x in cd[1:min(1 + arg, cl)]))
             return (arg, cd[1:min(1 + arg, cl)])
         elif typ == 1:  # first
             fl = arg * 256 + cd[1]
@@ -94,7 +95,7 @@ class Decoder(object):
                 fl = self.mfs[ci][0]
                 d = self.mfs[ci][2] + cd[1:min(cl, el + 2)]
                 del self.mfs[ci]
-                # print("got mf:", ''.join('{:02x}'.format(x) for x in d))
+                # print("got mf:", hex(ci), ''.join('{:02x}'.format(x) for x in d))
                 return (fl, d)
         elif typ == 3:  # flow, packets not for us
             pass
@@ -105,7 +106,35 @@ class Decoder(object):
             return
         self.cb[ci] = cd
 
-        if ci == 0x131:  # cmd to cd changer
+        if ci == 0x0a4:  # current cd track, multiframe
+            dd = self.parse_mf(ci, cl, cd)
+            if not dd:
+                return
+            cd = dd[1]
+            ha = bool(cd[2] & 0x10)
+            self.track_author = ha and self.get_str(cd[4:24]) or ""
+            self.track_name = self.get_str(ha and cd[24:44] or cd[4:24])
+
+        elif ci == 0x125:  # track list, multiframe
+            dd = self.parse_mf(ci, cl, cd)
+            if not dd:
+                return
+            # cd list
+            #got mf: 0x125 900100108111524f4f5400000000000000000000000000000000
+            #got mf: 0x125 986f5d41f120696c6c5f6e696e6f5f2d5f686f775f63616e5f696b6f726e2d6b6973732d6d73742e6d70330000006d797a756b612e72755f332e5f42756c6c65745f6d797a756b612e72755f372e5f5374617469632d
+            #got mf: 0x125 00
+
+            # radio list, band
+            #got mf: 0x125 100100103130332e3230000000
+            #got mf: 0x125 20500000353331000000000000353331000000000000353331000000000000363330000000000000353331000000000000353331000000000000
+            #got mf: 0x125 201000004543484f204d534b90464d2039302e3920903130312e354d485ab0504c555320202020903130362e393000002035392d33342d3233b0
+            #got mf: 0x125 20200000464d2039302e39209031363a31363a333790343634375f31335fb03130332e363000000039302e36300000000044414e434520202090
+            #got mf: 0x125 40200000464d2039302e39209031363a31363a333790343634375f31335fb03130332e363000000039302e36300000000044414e434520202090
+            #got mf: 0x125 00
+
+
+
+        elif ci == 0x131:  # cmd to cd changer
             pass
 
         elif ci == 0x165:  # radio status
@@ -210,21 +239,6 @@ class Decoder(object):
         elif ci == 0x5e0:  # hw/sw radio info
             pass
 
-        elif ci == 0x0a4:  # current cd track, multiframe
-            dd = self.parse_mf(ci, cl, cd)
-            if not dd:
-                return
-            cd = dd[1]
-            ha = bool(cd[2] & 0x10)
-            self.track_author = ha and self.get_str(cd[4:24]) or ""
-            self.track_name = self.get_str(ha and cd[24:44] or cd[4:24])
-
-        elif ci == 0x11f:  # band press, multiframe
-            pass
-
-        elif ci == 0x125:  # track list, multiframe
-            pass
-
         tuner = self.source == 'Tuner' and self.enabled
         cd = self.source in ('CD', 'CD Changer') and self.enabled
         aux = 'AUX' in self.source and self.enabled
@@ -247,7 +261,7 @@ class Decoder(object):
 
         self.ss('band', tuner and self.radio_band or "")
         self.ss('info', tuner and self.rds_name and self.radio_freq or
-                        (cd and ("» %s%s" % (self.track_time, self.track_len != "--:--" and " / " + self.track_len or "")) or ""))
+                (cd and ("» %s%s" % (self.track_time, self.track_len != "--:--" and " / " + self.track_len or "")) or ""))
         self.ss('memch', tuner and self.radio_mem and str(self.radio_mem) or "")
         self.ss('ta', self.enabled and self.have_ta and "TA" or "")
         self.ss('reg', tuner and self.have_reg and "REG" or "")
