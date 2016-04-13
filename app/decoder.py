@@ -269,4 +269,5 @@ class Decoder(object):
         self.ss('rdtxt_rnd', tuner and self.radiotext and "RDTXT" or (cd and self.random and "RDM" or (cd and self.track_intro and "INT" or "")))
         self.ss('loud', self.enabled and self.loudness and "LOUD" or "")
         self.ss('vol', self.enabled and ("Vol: [b]%d[/b]" % self.volume) or "")
+        self.ss('volbar', self.enabled and self.volume or 0)
         self.ss('title', cd and (self.track_name + (self.track_author and (" / %s" % self.track_author) or "")) or "")

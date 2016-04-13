@@ -12,7 +12,7 @@ import kivy
 from kivy.app import App
 from kivy.clock import Clock, mainthread
 from kivy.core.window import Window
-from kivy.properties import StringProperty
+from kivy.properties import StringProperty, NumericProperty
 
 from decoder import Decoder
 
@@ -40,6 +40,7 @@ class Citrocan(App):
     d_reg = StringProperty()
     d_loud = StringProperty()
     d_icon = StringProperty("icon")
+    d_volbar = NumericProperty()
 
     def build(self):
         Window.size = (531, 131)
