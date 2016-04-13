@@ -18,9 +18,8 @@ class Decoder(object):
     track_intro = False
     random = False
     repeat = False
-    rds = False
-    reg = False
-    radiotext = False
+    rds_alt = False
+    want_rdtxt = False
     balance_lr = 0
     show_balance_lr = False
     balance_rf = 0
@@ -42,12 +41,21 @@ class Decoder(object):
     radio_freq = ""
     radio_ast = False
     radio_scan = False
-    rds_search = False
+    want_rds = False
+    have_rds = False
+    want_ta = False
     have_ta = False
-    have_reg = False
-    have_pty = False
+    traffic = False
+    want_reg = False
+    want_pty = False
     show_pty = False
-    pty = 0
+    pty_mode = 0
+    pty_sel = 0
+    pty_cur = ""
+    ptys = {0x00: 'Deactivate', 0x01: 'News', 0x02: 'Affairs', 0x03: 'Info', 0x04: 'Sport', 0x05: 'Educate', 0x06: 'Drama', 0x07: 'Culture',
+            0x08: 'Science', 0x09: 'Varied', 0x0A: 'Pop M', 0x0B: 'Rock M', 0x0C: 'Easy M', 0x0D: 'Light M', 0x0E: 'Classics', 0x0F: 'Other M',
+            0x10: 'Weather', 0x11: 'Finance', 0x12: 'Children', 0x13: 'Social', 0x14: 'Religion', 0x15: 'Phone In', 0x16: 'Travel',
+            0x17: 'Leisure', 0x18: 'Jazz', 0x19: 'Country', 0x1A: 'Nation M', 0x1B: 'Oldies', 0x1C: 'Folk M', 0x1D: 'Document'}
     rds_name = ""
     cd_tracks = 0
     cd_len = ""
@@ -57,6 +65,7 @@ class Decoder(object):
     track_len = ""
     track_name = ""
     track_author = ""
+    rdtxt = ""
     key = {}
 
     def __init__(self, ss):
@@ -111,14 +120,29 @@ class Decoder(object):
             if not dd:
                 return
             cd = dd[1]
-            ha = bool(cd[2] & 0x10)
-            self.track_author = ha and self.get_str(cd[4:24]) or ""
-            self.track_name = self.get_str(ha and cd[24:44] or cd[4:24])
+            # cd track info
+            #got mf: 0xa4 20009801546865204372616e626572726965730000000000416e696d616c20496e7374696e63740000000000
+            #got mf: 0xa4 2000000000
+
+            # radiotext
+            #got mf: 0xa4 10000000544154415220524144494f53202020202020202020202020414c4c49202d2052454b4c414d41202838353532292039322d30302d383220202020202020202020
+            #got mf: 0xa4 10000000544154415220524144494f53492038372e3520464d204348414c4c49202d2052454b4c414d41202838353532292039322d30302d383220202020202020202020
+            #got mf: 0xa4 1000000000
+
+            typ = (cd[0] >> 4) & 3
+            if typ == 2:
+                ha = bool(cd[2] & 0x10)
+                self.track_author = ha and self.get_str(cd[4:24]) or ""
+                self.track_name = self.get_str(ha and cd[24:44] or cd[4:24])
+            elif typ == 1:
+                print("ok", cd)
+                self.rdtxt = self.get_str(cd[4:])
 
         elif ci == 0x125:  # track list, multiframe
             dd = self.parse_mf(ci, cl, cd)
             if not dd:
                 return
+            cd = dd[1]
             # cd list
             #got mf: 0x125 900100108111524f4f5400000000000000000000000000000000
             #got mf: 0x125 986f5d41f120696c6c5f6e696e6f5f2d5f686f775f63616e5f696b6f726e2d6b6973732d6d73742e6d70330000006d797a756b612e72755f332e5f42756c6c65745f6d797a756b612e72755f372e5f5374617469632d
@@ -152,9 +176,8 @@ class Decoder(object):
             self.track_intro = bool(cd[0] & 0x20)
             self.random = bool(cd[0] & 0x04)
             self.repeat = bool(cd[1] & 0x80)
-            self.rds = bool(cd[2] & 0x20)
-            self.reg = bool(cd[3] & 0x80)
-            self.radiotext = bool(cd[4] & 0x20)
+            self.rds_alt = bool(cd[2] & 0x20)
+            self.want_rdtxt = bool(cd[4] & 0x20)
 
         elif ci == 0x1e5:  # audio settings
             self.balance_lr = ((cd[0] + 1) & 0x0f) - (cd[0] ^ 0x40 & 0x40) >> 2
@@ -193,12 +216,17 @@ class Decoder(object):
                 self.radio_freq = "%.2f MHz" % (freq * 0.05 + 50)
 
         elif ci == 0x265:  # rds
-            self.rds_search = bool(cd[0] & 0x80)
-            self.have_ta = bool(cd[0] & 0x10)
-            self.have_reg = bool(cd[0] & 0x01)
-            self.have_pty = bool(cd[1] & 0x80)
+            self.want_rds = bool(cd[0] & 0x80)
+            self.have_rds = bool(cd[0] & 0x20)
+            self.want_ta = bool(cd[0] & 0x10)
+            self.have_ta = bool(cd[0] & 0x04)
+            self.traffic = bool(cd[0] & 0x02)
+            self.want_reg = bool(cd[0] & 0x01)
+            self.want_pty = bool(cd[1] & 0x80)
             self.show_pty = bool(cd[1] & 0x40)
-            self.pty = cd[2]
+            self.pty_mode = (cd[1] >> 4) & 3
+            self.pty_sel = cd[2]
+            self.pty_cur = self.pty_mode in (1, 2) and cd[3] and self.ptys.get(cd[3], "Unk:" + hex(cd[3])) or ""
 
         elif ci == 0x2a5:  # rds title
             self.rds_name = self.get_str(cd) if cd[0] != 0 else None
@@ -253,7 +281,7 @@ class Decoder(object):
 
         elif tuner:
             self.ss('icon', 'radio')
-            self.ss('name', self.rds_name or self.radio_freq)
+            self.ss('name', self.traffic and "Traffic" or self.rds_name or self.radio_freq)
 
         elif cd:
             self.ss('icon', self.cd_mp3 and 'cdmp3' or 'cdaudio')
@@ -263,11 +291,15 @@ class Decoder(object):
         self.ss('info', tuner and self.rds_name and self.radio_freq or
                 (cd and ("» %s%s" % (self.track_time, self.track_len != "--:--" and " / " + self.track_len or "")) or ""))
         self.ss('memch', tuner and self.radio_mem and str(self.radio_mem) or "")
-        self.ss('ta', self.enabled and self.have_ta and "TA" or "")
-        self.ss('reg', tuner and self.have_reg and "REG" or "")
-        self.ss('rds', tuner and self.rds and "RDS" or "")
-        self.ss('rdtxt_rnd', tuner and self.radiotext and "RDTXT" or (cd and self.random and "RDM" or (cd and self.track_intro and "INT" or "")))
+        self.ss('ta', self.enabled and self.want_ta and "TA" or "")
+        self.ss('ta_ok', tuner and self.have_ta)
+        self.ss('pty', self.enabled and self.want_pty and "PTY" or "")
+        self.ss('ptyname', tuner and self.enabled and self.rdtxt == "" and self.pty_cur or "")
+        self.ss('reg', tuner and self.want_reg and "REG" or "")
+        self.ss('rds', tuner and self.want_rds and "RDS" or "")
+        self.ss('rds_ok', tuner and self.have_rds)
+        self.ss('rdtxt_rnd', tuner and self.want_rdtxt and "RDTXT" or (cd and self.random and "RDM" or (cd and self.track_intro and "INT" or "")))
         self.ss('loud', self.enabled and self.loudness and "LOUD" or "")
         self.ss('vol', self.enabled and ("Vol: [b]%d[/b]" % self.volume) or "")
         self.ss('volbar', self.enabled and self.volume or 0)
-        self.ss('title', cd and (self.track_name + (self.track_author and (" / %s" % self.track_author) or "")) or "")
+        self.ss('title', cd and (self.track_name + (self.track_author and (" / %s" % self.track_author) or "")) or (tuner and self.rdtxt) or "")

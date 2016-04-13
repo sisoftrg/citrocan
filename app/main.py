@@ -12,7 +12,7 @@ import kivy
 from kivy.app import App
 from kivy.clock import Clock, mainthread
 from kivy.core.window import Window
-from kivy.properties import StringProperty, NumericProperty
+from kivy.properties import StringProperty, NumericProperty, BooleanProperty
 
 from decoder import Decoder
 
@@ -35,7 +35,12 @@ class Citrocan(App):
     d_title = StringProperty()
     d_memch = StringProperty()
     d_rds = StringProperty()
+    d_rds_ok = BooleanProperty()
     d_ta = StringProperty()
+    d_ta_ok = BooleanProperty()
+    d_pty = StringProperty()
+    d_pty_ok = BooleanProperty()
+    d_ptyname = StringProperty()
     d_rdtxt_rnd = StringProperty()
     d_reg = StringProperty()
     d_loud = StringProperty()
