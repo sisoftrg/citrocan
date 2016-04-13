@@ -129,14 +129,13 @@ class Decoder(object):
             #got mf: 0xa4 10000000544154415220524144494f53492038372e3520464d204348414c4c49202d2052454b4c414d41202838353532292039322d30302d383220202020202020202020
             #got mf: 0xa4 1000000000
 
-            typ = (cd[0] >> 4) & 3
-            if typ == 2:
+            page = (cd[0] >> 4) & 0x0f
+            if page == 1:
+                self.rdtxt = self.get_str(cd[4:])
+            elif page == 2:
                 ha = bool(cd[2] & 0x10)
                 self.track_author = ha and self.get_str(cd[4:24]) or ""
                 self.track_name = self.get_str(ha and cd[24:44] or cd[4:24])
-            elif typ == 1:
-                print("ok", cd)
-                self.rdtxt = self.get_str(cd[4:])
 
         elif ci == 0x125:  # track list, multiframe
             dd = self.parse_mf(ci, cl, cd)
@@ -156,6 +155,7 @@ class Decoder(object):
             #got mf: 0x125 40200000464d2039302e39209031363a31363a333790343634375f31335fb03130332e363000000039302e36300000000044414e434520202090
             #got mf: 0x125 00
 
+            page = (cd[0] >> 4) & 0x0f
 
 
         elif ci == 0x131:  # cmd to cd changer
@@ -294,6 +294,7 @@ class Decoder(object):
         self.ss('ta', self.enabled and self.want_ta and "TA" or "")
         self.ss('ta_ok', tuner and self.have_ta)
         self.ss('pty', self.enabled and self.want_pty and "PTY" or "")
+        self.ss('pty_ok', tuner and self.pty_cur == self.ptys.get(self.pty_sel))
         self.ss('ptyname', tuner and self.enabled and self.rdtxt == "" and self.pty_cur or "")
         self.ss('reg', tuner and self.want_reg and "REG" or "")
         self.ss('rds', tuner and self.want_rds and "RDS" or "")
