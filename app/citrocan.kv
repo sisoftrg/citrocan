@@ -183,3 +183,18 @@ FloatLayout:
     size: 360, 0
     max: 30
     value: app.d_volbar
+
+  Label:
+    canvas.before:
+      Color:
+        rgba: .4, .2, .4, .9
+      Rectangle:
+        size: 500, 100
+        pos: 15, 15
+
+    color: .9, .9, 1, 1
+    font_size: 20
+    text: app.d_alert
+    text_size: 470, None
+    halign: "center"
+    opacity: 1 if app.d_alert else 0

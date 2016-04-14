@@ -304,3 +304,4 @@ class Decoder(object):
         self.ss('vol', self.enabled and ("Vol: [b]%d[/b]" % self.volume) or "")
         self.ss('volbar', self.enabled and self.volume or 0)
         self.ss('title', cd and (self.track_name + (self.track_author and (" / %s" % self.track_author) or "")) or (tuner and self.rdtxt) or "")
+        self.ss('alert', "")

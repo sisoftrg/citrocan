@@ -46,6 +46,7 @@ class Citrocan(App):
     d_loud = StringProperty()
     d_icon = StringProperty("icon")
     d_volbar = NumericProperty()
+    d_alert = StringProperty()
 
     def build(self):
         Window.size = (531, 131)
@@ -72,6 +73,7 @@ class Citrocan(App):
                     sp = serial.Serial(port=Port, baudrate=460800, timeout=1)
                 except (ValueError, serial.SerialException) as e:
                     print("can't open serial:", e)
+                    self.safe_set('alert', "No connection")
 
             if sp and not ready:
                 try:
