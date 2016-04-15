@@ -78,9 +78,9 @@ class Decoder(object):
             s = ba.decode('utf8')
         except UnicodeDecodeError:
             try:
-                s = ba.decode('cp1251')
-            except:
-                s = ""
+                s = ba.decode('cp1251', errors='replace')
+            except UnicodeDecodeError:
+                s = "<bad name>"
         return s.strip()
 
     def parse_mf(self, ci, cl, cd):
@@ -225,8 +225,9 @@ class Decoder(object):
             self.want_pty = bool(cd[1] & 0x80)
             self.show_pty = bool(cd[1] & 0x40)
             self.pty_mode = (cd[1] >> 4) & 3
-            self.pty_sel = cd[2]
-            self.pty_cur = self.pty_mode in (1, 2) and cd[3] and self.ptys.get(cd[3], "Unk:" + hex(cd[3])) or ""
+            self.pty_sel = cd[2] & 0x1f
+            pc = cd[3] & 0x1f
+            self.pty_cur = self.pty_mode in (1, 2) and pc and self.ptys.get(pc, "Unk:" + hex(pc)) or ""
 
         elif ci == 0x2a5:  # rds title
             self.rds_name = self.get_str(cd) if cd[0] != 0 else None
@@ -273,7 +274,7 @@ class Decoder(object):
 
         if not self.enabled:
             self.ss('icon', 'icon')
-            self.ss('name', 'Disabled :(')
+            self.ss('name', 'Disabled')
 
         elif aux:
             self.ss('icon', 'linein')
@@ -286,6 +287,10 @@ class Decoder(object):
         elif cd:
             self.ss('icon', self.cd_mp3 and 'cdmp3' or 'cdaudio')
             self.ss('name', self.cd_disk in (1, 3) and ('Track %d/%d' % (self.track_num, self.cd_tracks)) or "Wait...")
+
+        else:
+            self.ss('icon', 'icon')
+            self.ss('name', self.source)
 
         self.ss('band', tuner and self.radio_band or "")
         self.ss('info', tuner and self.rds_name and self.radio_freq or
