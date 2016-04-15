@@ -27,7 +27,7 @@ class Citrocan(App):
     stop_ev = threading.Event()
     d_time = StringProperty()
     d_date = StringProperty()
-    d_temp = StringProperty("[b]——[/b]°F")
+    d_temp = StringProperty()
     d_vol = StringProperty()
     d_band = StringProperty()
     d_name = StringProperty()
@@ -94,8 +94,8 @@ class Citrocan(App):
                     if not r:
                         break
                     if r == b'\n':
-                        #print("got:", buf)
-                        if len(buf) and buf[0] == 'R':
+                        # print("got:", buf)
+                        if len(buf) and buf[0] in ('R', 'S'):
                             try:
                                 flds = buf.split()
                                 cid = int(flds[1], 16)

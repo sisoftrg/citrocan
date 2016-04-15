@@ -7,7 +7,21 @@ class Decoder(object):
 
     cb = {}
     mfs = {}
+    lamps = {}
+    economy = False
     enabled = False
+    lighting = False
+    brightness = 0x1c
+    ignition = 2
+    rpm = 0
+    speed = 0
+    odometer = 0
+    out_temp = 0
+    message_id = 0
+    show_message = False
+    vin1 = ""
+    vin2 = ""
+    vin3 = ""
     silence = False
     source = ""
     srcs = ['---', 'Tuner', 'CD', 'CD Changer', 'Input AUX 1', 'Input AUX 2', 'USB', 'Bluetooth']
@@ -37,7 +51,7 @@ class Decoder(object):
     ambience_show = False
     radio_mem = 0
     radio_band = ""
-    bands = ['---', ' FM1', ' FM2', 'DAB', 'FMAST', 'AMMW', 'AMLW', '---']
+    bands = ['---', ' FM1', ' FM2', 'DAB', 'FMAST', 'AM', 'AMLW', '---']
     radio_freq = ""
     ast_scan = False
     pty_scan = False
@@ -63,13 +77,35 @@ class Decoder(object):
     cd_tracks = 0
     cd_len = ""
     cd_mp3 = 0
+    cd_pause = False
     track_num = 0
     track_time = ""
     track_len = ""
     track_name = ""
     track_author = ""
     rdtxt = ""
-    key = {}
+    rkeys = {}
+    msgs = {0x00: 'Diagnosis ok', 0x01: 'Engine temperature too high', 0x03: 'Coolant circuit level too low', 0x04: 'Check engine oil level', 0x05: 'Engine oil pressure too low',
+            0x08: 'Braking system faulty', 0x0A: 'Air suspension ok (picture)', 0x0B: 'Door, boot, bonnet and fuel tank open', 0x0D: 'Tyre puncture(s) detected',
+            0x0F: 'Risk of particle filter blocking', 0x11: 'Suspension faulty: max.speed 90 km/h', 0x12: 'Suspension faulty', 0x13: 'Power steering faulty', 0x14: '10km/h!',
+            0x61: 'Handbrake on', 0x62: 'Handbrake off', 0x64: 'Handbrake control faulty: auto handbrake activated', 0x67: 'Brake pads worn', 0x68: 'Handbrake faulty',
+            0x69: 'Mobile deflector faulty', 0x6A: 'ABS braking system faulty', 0x6B: 'ESP / ASR system faulty', 0x6C: 'Suspension faulty', 0x6D: 'Power steering faulty',
+            0x6E: 'Gearbox faulty', 0x6F: 'Cruise control system faulty', 0x73: 'Ambient brightness sensor faulty', 0x74: 'Sidelamp bulb(s) faulty',
+            0x75: 'Automatic headlamp adjustment faulty', 0x76: 'Directional headlamps faulty', 0x78: 'Airbag faulty', 0x79: 'Active bonnet faulty', 0x7A: 'Gearbox faulty',
+            0x7B: 'Apply foot on brake and lever in position "N"', 0x7D: 'Presence of water in diesel fuel filter', 0x7E: 'Engine management system faulty',
+            0x7F: 'Depollution system faulty', 0x81: 'Particle filter additive level too low', 0x83: 'Electronic anti-theft faulty', 0x86: 'Right hand side door faulty',
+            0x87: 'Left hand side door faulty', 0x89: 'Space measuring system faulty', 0x8A: 'Battery charge or electrical supply faulty', 0x8D: 'Tyre pressure(s) too low',
+            0x92: 'Warning!', 0x95: 'Info!', 0x96: 'Info!', 0x97: 'Anti-wander system lane-crossing warning device faulty', 0x9D: 'Foglamp bulb(s) faulty',
+            0x9E: 'Direction indicator(s) faulty', 0xA0: 'Sidelamp bulb(s) faulty', 0xA1: 'Parking lamps active', 0xCD: 'Cruise control not possible: speed too low',
+            0xCE: 'Control activation not possible: enter the speed', 0xD1: 'Active bonnet deployed', 0xD2: 'Front seat belts not fastened',
+            0xD3: 'Rear right hand passenger seat belts fastened', 0xD7: 'Place automatic gearbox in position "P"', 0xD8: 'Risk of ice', 0xD9: 'Handbrake!',
+            0xDE: 'Door, boot, bonnet and fuel tank open', 0xDF: 'Screen wash fluid level too low', 0xE0: 'Fuel level too low', 0xE1: 'Fuel circuit deactivated',
+            0xE3: 'Remote control battery flat', 0xE4: 'Check and re-initialise tyre pressure', 0xE5: 'Tyre pressure(s) not monitored',
+            0xE7: 'High speed, check tyre pressures correct', 0xE8: 'Tyre pressure(s) too low', 0xEA: 'Hands-free starting system faulty',
+            0xEB: 'Starting phase has failed (consult handbook)', 0xEC: 'Prolonged starting in progress', 0xED: 'Starting impossible: unlock the steering',
+            0xEF: 'Remote control detected', 0xF0: 'Diagnosis in progress...', 0xF1: 'Diagnosis completed', 0xF7: 'Rear LH passenger seatbelt unfastened',
+            0xF8: 'Rear center passenger seatbelt unfastened', 0xF9: 'Rear RH passenger seatbelt unfastened'}
+
 
     def __init__(self, ss):
         self.ss = ss
@@ -118,7 +154,13 @@ class Decoder(object):
             return
         self.cb[ci] = cd
 
-        if ci == 0x0a4:  # current cd track, multiframe
+        if ci == 0x036:  # bsi: ignition
+            self.economy = bool(cd[2] & 0x80)
+            self.lighting = bool(cd[3] & 0x20)
+            self.brightness = cd[3] & 0x0f
+            self.ignition = cd[4] & 0x07
+
+        elif ci == 0x0a4:  # current cd track, multiframe
             dd = self.parse_mf(ci, cl, cd)
             if not dd:
                 return
@@ -139,6 +181,17 @@ class Decoder(object):
                 ha = bool(cd[2] & 0x10)
                 self.track_author = ha and self.get_str(cd[4:24]) or ""
                 self.track_name = self.get_str(ha and cd[24:44] or cd[4:24])
+
+        elif ci == 0x0b6:  # bsi: speed info
+            self.rpm = cd[0] * 256 + (cd[1] >> 3)
+            self.speed = cd[2] * 256 + cd[3]
+
+        elif ci == 0x0f6:  # bsi: info
+            self.odometer = cd[2] * 65536 + cd[3] * 256 + cd[4]
+            self.out_temp = cd[6] / 2 - 39.5
+            self.lamps['reverse'] = bool(cd[7] & 0x80)
+            self.lamps['right'] = bool(cd[7] & 0x02)
+            self.lamps['left'] = bool(cd[7] & 0x01)
 
         elif ci == 0x125:  # track list, multiframe
             dd = self.parse_mf(ci, cl, cd)
@@ -161,6 +214,17 @@ class Decoder(object):
             page = (cd[0] >> 4) & 0x0f
 
 
+        elif ci == 0x128:  # bsi: lamps
+            self.lamps['belt_fl'] = bool(cd[0] & 0x40)
+            self.lamps['doors'] = bool(cd[1] & 0x10)
+            self.lamps['sidelight'] = bool(cd[4] & 0x80)
+            self.lamps['beam_l'] = bool(cd[4] & 0x40)
+            self.lamps['beam_h'] = bool(cd[4] & 0x20)
+            self.lamps['fog_f'] = bool(cd[4] & 0x10)
+            self.lamps['fog_r'] = bool(cd[4] & 0x08)
+            self.lamps['lefti'] = bool(cd[4] & 0x04)
+            self.lamps['righti'] = bool(cd[4] & 0x02)
+
         elif ci == 0x131:  # cmd to cd changer
             pass
 
@@ -171,9 +235,17 @@ class Decoder(object):
             self.have_changer = bool(cd[1] & 0x10)
             #self.cd_disk = ((cd[1] >> 5) & 3) ^ 1  # for b7?
 
+        elif ci == 0x1a1:  # bsi: info messages
+            self.show_message = bool(cd[2] & 0x80)
+            if cd[0] == 0x80:
+                self.message_id = cd[1]
+
         elif ci == 0x1a5:  # volume
             self.volume = cd[0] & 0x1f
             self.vol_change = bool(cd[0] & 0x80)
+
+        elif ci == 0x1d0:  # climate: control info
+            pass
 
         elif ci == 0x1e0:  # radio settings
             self.track_intro = bool(cd[0] & 0x20)
@@ -198,12 +270,21 @@ class Decoder(object):
             self.ambience = self.ambs.get(cd[6] & 0x1f, "Unk:" + hex(cd[6] & 0x1f))
             self.ambience_show = bool(cd[6] & 0x40)
 
+        elif ci == 0x21f:  # remote keys under wheel
+            self.rkeys['fwd'] = bool(cd[0] & 0x80)
+            self.rkeys['rew'] = bool(cd[0] & 0x40)
+            self.rkeys['volup'] = bool(cd[0] & 0x08)
+            self.rkeys['voldn'] = bool(cd[0] & 0x04)
+            self.rkeys['src'] = bool(cd[0] & 0x02)
+            self.rkeys['scroll'] = cd[1]
+
+        elif ci == 0x221:  # trip computer
+            pass
+
         elif ci == 0x225:  # radio freq
             if cl == 6:  # b7, from autowp docs
                 self.radio_mem = cd[0] & 7
                 self.radio_band = self.bands[(cd[1] >> 5) & 7]
-                self.radio_ast = False
-                self.radio_scan = False
                 freq = (cd[1] & 0x0f) * 256 + cd[2]
 
             elif cl == 5:  # b3/b5
@@ -235,14 +316,23 @@ class Decoder(object):
             pc = cd[3] & 0x1f
             self.pty_cur = self.pty_mode in (1, 2) and pc and self.ptys.get(pc, "Unk:" + hex(pc)) or ""
 
+        elif ci == 0x276:  # bsi: date and time
+            pass
+
         elif ci == 0x2a5:  # rds title
             self.rds_name = self.get_str(cd) if cd[0] != 0 else None
+
+        elif ci == 0x2b6:  # bsi: last 8 vin digits
+            self.vin3 = bytes(cd[:8]).decode()
 
         elif ci == 0x2e5:  # hz
             pass
 
         elif ci == 0x325:  # cd tray info
             self.cd_disk = cd[1] & 0x83
+
+        elif ci == 0x336:  # bsi: first 3 vin letters
+            self.vin1 = bytes(cd[:3]).decode()
 
         elif ci == 0x365:  # cd disk info
             self.cd_tracks = cd[0]
@@ -254,19 +344,23 @@ class Decoder(object):
             self.track_len = "%02d:%02d" % (cd[1], cd[2]) if cd[1] != 0xff else "--:--"
             self.track_time = "%02d:%02d" % (cd[3], cd[4]) if cd[3] != 0xff else "--:--"
 
+        elif ci == 0x3b6:  # bsi: middle 6 vin digits
+            self.vin2 = bytes(cd[:6]).decode()
+
         elif ci == 0x3e5:  # keypad
-            self.key['menu'] = bool(cd[0] & 0x40)
-            self.key['tel'] = bool(cd[0] & 0x10)
-            self.key['clim'] = bool(cd[0] & 0x01)
-            self.key['trip'] = bool(cd[1] & 0x40)
-            self.key['audio'] = bool(cd[1] & 0x01)
-            self.key['ok'] = bool(cd[2] & 0x40)
-            self.key['esc'] = bool(cd[2] & 0x10)
-            self.key['dark'] = bool(cd[2] & 0x04)
-            self.key['up'] = bool(cd[5] & 0x40)
-            self.key['down'] = bool(cd[5] & 0x10)
-            self.key['right'] = bool(cd[5] & 0x04)
-            self.key['left'] = bool(cd[5] & 0x01)
+            self.rkeys['menu'] = bool(cd[0] & 0x40)
+            self.rkeys['tel'] = bool(cd[0] & 0x10)
+            self.rkeys['clim'] = bool(cd[0] & 0x01)
+            self.rkeys['trip'] = bool(cd[1] & 0x40)
+            self.rkeys['mode'] = bool(cd[1] & 0x10)
+            self.rkeys['audio'] = bool(cd[1] & 0x01)
+            self.rkeys['ok'] = bool(cd[2] & 0x40)
+            self.rkeys['esc'] = bool(cd[2] & 0x10)
+            self.rkeys['dark'] = bool(cd[2] & 0x04)
+            self.rkeys['up'] = bool(cd[5] & 0x40)
+            self.rkeys['down'] = bool(cd[5] & 0x10)
+            self.rkeys['right'] = bool(cd[5] & 0x04)
+            self.rkeys['left'] = bool(cd[5] & 0x01)
 
         elif ci == 0x520:  # hz
             pass
@@ -291,7 +385,7 @@ class Decoder(object):
         elif tuner:
             self.ss('icon', 'radio')
             self.ss('name', (self.rds_scan or self.ast_scan or self.pty_scan) and "Wait..." or (self.traffic and "Traffic" or self.rds_name or self.radio_freq))
-            self.ss('title', self.pty_scan and self.pty_sel and ("PTY: " + self.ptys.get(self.pty_sel)) or (self.rds_scan and "RDS search.." or
+            self.ss('title', self.pty_scan and self.pty_sel and ("PTY: " + self.ptys.get(self.pty_sel, "")) or (self.rds_scan and "RDS search.." or
                     (self.ast_scan and (self.radio_scan and "Autostore stations.." or "List in progress..")) or self.rdtxt))
 
         elif cd:
@@ -306,19 +400,20 @@ class Decoder(object):
 
         self.ss('band', tuner and self.radio_band or "")
         self.ss('info', tuner and self.rds_name and self.radio_freq or
-                (cd and ("» %s%s" % (self.track_time, self.track_len != "--:--" and " / " + self.track_len or "")) or ""))
+                (cd and ("%s %s%s" % (self.cd_pause and "×" or "»", self.track_time, self.track_len != "--:--" and " / " + self.track_len or "")) or ""))
         self.ss('memch', tuner and not self.radio_scan and self.radio_mem and str(self.radio_mem) or "")
         self.ss('dx', tuner and self.radio_scan and "DX" or "")
         self.ss('ta', self.enabled and self.want_ta and "TA" or "")
         self.ss('ta_ok', tuner and self.have_ta)
         self.ss('pty', self.enabled and self.want_pty and "PTY" or "")
-        self.ss('pty_ok', tuner and self.pty_cur == self.ptys.get(self.pty_sel))
+        self.ss('pty_ok', tuner and self.pty_cur == self.ptys.get(self.pty_sel, ""))
         self.ss('ptyname', tuner and self.enabled and self.rdtxt == "" and self.pty_cur or "")
         self.ss('reg', tuner and self.want_reg and "REG" or "")
         self.ss('rds', tuner and self.want_rds and "RDS" or "")
         self.ss('rds_ok', tuner and self.have_rds)
-        self.ss('rdtxt_rnd', tuner and self.want_rdtxt and "RDTXT" or (cd and self.random and "RDM" or (cd and self.track_intro and "INT" or "")))
+        self.ss('rdtxt_rnd', tuner and self.want_rdtxt and "RDTXT" or (cd and (self.random and "RDM" or (self.track_intro and "INT" or (self.repeat and "RPT")))) or "")
         self.ss('loud', self.enabled and self.loudness and "LOUD" or "")
         self.ss('vol', self.enabled and ("Vol: [b]%d[/b]" % self.volume) or "")
         self.ss('volbar', self.enabled and self.volume or 0)
-        self.ss('alert', "")
+        self.ss('temp', self.out_temp and ("[b]%.0f[/b]°C" % self.out_temp) or "[b]——[/b]°F")
+        self.ss('alert', self.show_message and self.msgs.get(self.message_id, "") or "")
