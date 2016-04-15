@@ -103,7 +103,8 @@ class Citrocan(App):
                                 cflds = []
                                 for n in range(clen):
                                     cflds.append(int(flds[n + 3], 16))
-                                dec.decode(cid, clen, cflds)
+                                if dec.decode(cid, clen, cflds):
+                                    dec.visualize()
                             except (TypeError, ValueError, IndexError) as e:
                                 print("can't decode:", buf, e)
                         elif len(buf) and buf[0] == 'I':

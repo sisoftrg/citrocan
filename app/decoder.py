@@ -151,7 +151,7 @@ class Decoder(object):
 
     def decode(self, ci, cl, cd):
         if ci in self.cb and cd == self.cb[ci]:
-            return
+            return False
         self.cb[ci] = cd
 
         if ci == 0x036:  # bsi: ignition
@@ -163,7 +163,7 @@ class Decoder(object):
         elif ci == 0x0a4:  # current cd track, multiframe
             dd = self.parse_mf(ci, cl, cd)
             if not dd:
-                return
+                return False
             cd = dd[1]
             # cd track info
             #got mf: 0xa4 20009801546865204372616e626572726965730000000000416e696d616c20496e7374696e63740000000000
@@ -196,7 +196,7 @@ class Decoder(object):
         elif ci == 0x125:  # track list, multiframe
             dd = self.parse_mf(ci, cl, cd)
             if not dd:
-                return
+                return False
             cd = dd[1]
             # cd list
             #got mf: 0x125 900100108111524f4f5400000000000000000000000000000000
@@ -368,6 +368,9 @@ class Decoder(object):
         elif ci == 0x5e0:  # hw/sw radio info
             pass
 
+        return True
+
+    def visualize(self):
         tuner = self.source == 'Tuner' and self.enabled
         cd = self.source in ('CD', 'CD Changer') and self.enabled
         aux = 'AUX' in self.source and self.enabled
