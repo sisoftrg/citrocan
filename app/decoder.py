@@ -39,8 +39,11 @@ class Decoder(object):
     radio_band = ""
     bands = ['---', ' FM1', ' FM2', 'DAB', 'FMAST', 'AMMW', 'AMLW', '---']
     radio_freq = ""
-    radio_ast = False
+    ast_scan = False
+    pty_scan = False
     radio_scan = False
+    rds_scan = False
+    show_radios = False
     want_rds = False
     have_rds = False
     want_ta = False
@@ -199,16 +202,19 @@ class Decoder(object):
             if cl == 6:  # b7, from autowp docs
                 self.radio_mem = cd[0] & 7
                 self.radio_band = self.bands[(cd[1] >> 5) & 7]
-                freq = (cd[1] & 0x0f) * 256 + cd[2]
                 self.radio_ast = False
                 self.radio_scan = False
+                freq = (cd[1] & 0x0f) * 256 + cd[2]
 
             elif cl == 5:  # b3/b5
+                self.pty_scan = bool(cd[0] & 0x01)
+                self.radio_scan = bool(cd[0] & 0x02)
+                self.rds_scan = bool(cd[0] & 0x04)
+                self.ast_scan = bool(cd[0] & 0x08)
+                self.show_radios = bool(cd[0] & 0x80)
                 self.radio_mem = (cd[1] >> 4) & 7
                 self.radio_band = self.bands[(cd[2] >> 4) & 7]
                 freq = (cd[3] & 0x0f) * 256 + cd[4]
-                self.radio_ast = bool(cd[0] & 0x08)
-                self.radio_scan = bool(cd[0] & 0x02)
 
             if self.radio_band in ('AMMW', 'AMLW'):
                 self.radio_freq = "%d KHz" % freq
@@ -275,27 +281,34 @@ class Decoder(object):
         if not self.enabled:
             self.ss('icon', 'icon')
             self.ss('name', 'Disabled')
+            self.ss('title', '')
 
         elif aux:
             self.ss('icon', 'linein')
             self.ss('name', self.source)
+            self.ss('title', '')
 
         elif tuner:
             self.ss('icon', 'radio')
-            self.ss('name', self.traffic and "Traffic" or self.rds_name or self.radio_freq)
+            self.ss('name', (self.rds_scan or self.ast_scan or self.pty_scan) and "Wait..." or (self.traffic and "Traffic" or self.rds_name or self.radio_freq))
+            self.ss('title', self.pty_scan and self.pty_sel and ("PTY: " + self.ptys.get(self.pty_sel)) or (self.rds_scan and "RDS search.." or
+                    (self.ast_scan and (self.radio_scan and "Autostore stations.." or "List in progress..")) or self.rdtxt))
 
         elif cd:
             self.ss('icon', self.cd_mp3 and 'cdmp3' or 'cdaudio')
             self.ss('name', self.cd_disk in (1, 3) and ('Track %d/%d' % (self.track_num, self.cd_tracks)) or "Wait...")
+            self.ss('title', self.track_name + (self.track_author and (" / %s" % self.track_author) or ""))
 
         else:
             self.ss('icon', 'icon')
             self.ss('name', self.source)
+            self.ss('title', '')
 
         self.ss('band', tuner and self.radio_band or "")
         self.ss('info', tuner and self.rds_name and self.radio_freq or
                 (cd and ("» %s%s" % (self.track_time, self.track_len != "--:--" and " / " + self.track_len or "")) or ""))
-        self.ss('memch', tuner and self.radio_mem and str(self.radio_mem) or "")
+        self.ss('memch', tuner and not self.radio_scan and self.radio_mem and str(self.radio_mem) or "")
+        self.ss('dx', tuner and self.radio_scan and "DX" or "")
         self.ss('ta', self.enabled and self.want_ta and "TA" or "")
         self.ss('ta_ok', tuner and self.have_ta)
         self.ss('pty', self.enabled and self.want_pty and "PTY" or "")
@@ -308,5 +321,4 @@ class Decoder(object):
         self.ss('loud', self.enabled and self.loudness and "LOUD" or "")
         self.ss('vol', self.enabled and ("Vol: [b]%d[/b]" % self.volume) or "")
         self.ss('volbar', self.enabled and self.volume or 0)
-        self.ss('title', cd and (self.track_name + (self.track_author and (" / %s" % self.track_author) or "")) or (tuner and self.rdtxt) or "")
         self.ss('alert', "")

@@ -30,29 +30,35 @@ FloatLayout:
       width: 1.2
 
   Label:
-    pos: 10, 10
+    pos: 0, 10
     size_hint: None, None
     size: self.texture_size
     color: 0, 0, 0, 1
     font_size: 20
+    text_size: 170, None
+    halign: "center"
     text: app.d_date
 
   Label:
-    pos: 30, 40
+    pos: 0, 40
     size_hint: None, None
     size: self.texture_size
     color: 0, 0, 0, 1
     font_size: 40
     font_name: 'DejaVuSans'
+    text_size: 170, None
+    halign: "center"
     bold: True
     text: app.d_time
 
   Label:
-    pos: 173, 73
+    pos: 170, 73
     size_hint: None, None
     size: self.texture_size
     color: 0, 0, 0, 1
     font_size: 22
+    text_size: 80, None
+    halign: "center"
     text: app.d_band
 
   Label:
@@ -81,11 +87,21 @@ FloatLayout:
     text: app.d_title
 
   Label:
-    pos: 460, 22
+    pos: 500, 77
+    size_hint: None, None
+    size: self.texture_size
+    color: 0, 0, 0, 1
+    font_size: 20
+    text: app.d_dx
+
+  Label:
+    pos: 447, 22
     size_hint: None, None
     size: self.texture_size
     color: 0, 0, 0, 1
     font_size: 17
+    text_size: 80, None
+    halign: "right"
     text: app.d_ptyname
 
   Label:

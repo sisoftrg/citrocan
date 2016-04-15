@@ -34,6 +34,7 @@ class Citrocan(App):
     d_info = StringProperty()
     d_title = StringProperty()
     d_memch = StringProperty()
+    d_dx = StringProperty()
     d_rds = StringProperty()
     d_rds_ok = BooleanProperty()
     d_ta = StringProperty()
