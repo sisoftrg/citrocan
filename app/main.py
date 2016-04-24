@@ -19,7 +19,7 @@ from decoder import Decoder
 kivy.require('1.9.0')
 __version__ = '1.0'
 
-Port = "/dev/ttyUSB0"
+Port = "/dev/rfcomm0"
 
 
 class Citrocan(App):

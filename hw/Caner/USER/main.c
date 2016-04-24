@@ -7,6 +7,8 @@
 #include "stm32f10x.h"
 #include <stdio.h>
 
+#define USARTx USART2
+
 #define C_BUF_SIZE 16
 CanRxMsg RxMessage[C_BUF_SIZE];
 int c_buf_r, c_buf_w;
@@ -160,14 +162,14 @@ int fputc(int ch, FILE *f)
 	while((s_buf_w + 1) % S_BUF_SIZE == s_buf_r);
 	s_buf[s_buf_w] = (uint8_t) ch;
 	s_buf_w = (s_buf_w + 1) % S_BUF_SIZE;
-	USART_ITConfig(USART1, USART_IT_TXE, ENABLE);
+	USART_ITConfig(USARTx, USART_IT_TXE, ENABLE);
 	return ch;
 }
 
-void USART1_IRQHandler(void)
+void USART2_IRQHandler(void)
 {
-	if(USART_GetITStatus(USART1, USART_IT_RXNE) != RESET) {
-		volatile uint8_t b = USART_ReceiveData(USART1);
+	if(USART_GetITStatus(USARTx, USART_IT_RXNE) != RESET) {
+		volatile uint8_t b = USART_ReceiveData(USARTx);
 		if(b == '\r' && !have_cmd) {
 			have_cmd = r_buf_w;
 			r_buf[r_buf_w] = 0;
@@ -176,34 +178,35 @@ void USART1_IRQHandler(void)
 			r_buf[r_buf_w++] = b;
 	}
 
-	if(USART_GetITStatus(USART1, USART_IT_TXE) != RESET) {
+	if(USART_GetITStatus(USARTx, USART_IT_TXE) != RESET) {
 		if(s_buf_r != s_buf_w) {
-			USART_SendData(USART1, s_buf[s_buf_r]);
+			USART_SendData(USARTx, s_buf[s_buf_r]);
 			s_buf_r = (s_buf_r + 1) % S_BUF_SIZE;
 		}
 		if(s_buf_r == s_buf_w)
-			USART_ITConfig(USART1, USART_IT_TXE, DISABLE);
+			USART_ITConfig(USARTx, USART_IT_TXE, DISABLE);
 	}
 }
 
 void CFG_USART(void)
 {
-	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_USART1 | RCC_APB2Periph_AFIO, ENABLE);
+	RCC_APB1PeriphClockCmd(RCC_APB1Periph_USART2, ENABLE);
+	RCC_APB2PeriphClockCmd(RCC_APB2Periph_GPIOA | RCC_APB2Periph_AFIO, ENABLE);
 
 	NVIC_InitTypeDef NVIC_InitStructure;
 	NVIC_PriorityGroupConfig(NVIC_PriorityGroup_0);
-	NVIC_InitStructure.NVIC_IRQChannel = USART1_IRQn;
+	NVIC_InitStructure.NVIC_IRQChannel = USART2_IRQn;
 	NVIC_InitStructure.NVIC_IRQChannelSubPriority = 0x0;
 	NVIC_InitStructure.NVIC_IRQChannelCmd = ENABLE;
 	NVIC_Init(&NVIC_InitStructure);
 
 	GPIO_InitTypeDef GPIO_InitStructure;
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_9;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_2;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_AF_PP;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
 
-	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_10;
+	GPIO_InitStructure.GPIO_Pin = GPIO_Pin_3;
 	GPIO_InitStructure.GPIO_Mode = GPIO_Mode_IN_FLOATING;
 	GPIO_InitStructure.GPIO_Speed = GPIO_Speed_50MHz;
 	GPIO_Init(GPIOA, &GPIO_InitStructure);
@@ -215,15 +218,15 @@ void CFG_USART(void)
 	USART_InitStructure.USART_Parity = USART_Parity_No;
 	USART_InitStructure.USART_HardwareFlowControl = USART_HardwareFlowControl_None;
 	USART_InitStructure.USART_Mode = USART_Mode_Rx | USART_Mode_Tx;
-	USART_Init(USART1, &USART_InitStructure);
+	USART_Init(USARTx, &USART_InitStructure);
 
 	r_buf_w = 0;
 	s_buf_w = s_buf_r = 0;
 	have_cmd = 0;
 
-	USART_ITConfig(USART1, USART_IT_RXNE, ENABLE);
-	USART_ITConfig(USART1, USART_IT_TXE, DISABLE);
-	USART_Cmd(USART1, ENABLE);
+	USART_ITConfig(USARTx, USART_IT_RXNE, ENABLE);
+	USART_ITConfig(USARTx, USART_IT_TXE, DISABLE);
+	USART_Cmd(USARTx, ENABLE);
 }
 
 void TickHandler(void)

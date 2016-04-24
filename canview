@@ -9,7 +9,7 @@ use Curses;
 
 $SIG{INT} = sub { endwin(); };
 
-$port="/dev/ttyUSB0";
+$port="/dev/rfcomm0";
 $speed=460800;
 
 $|=1;

@@ -6,7 +6,7 @@
 
 use Time::HiRes qw/gettimeofday usleep/;
 
-$port="/dev/ttyUSB0";
+$port="/dev/rfcomm0";
 $speed=460800;
 
 $|=1;
