@@ -158,7 +158,7 @@ class Citrocan(App):
                         r = recv.read()
                     except Exception as e:
                         print("can't read from bluetooth:", e)
-                        sock.Close()
+                        sock.close()
                         sock = None
                         r = None
                     if not r:
