@@ -127,6 +127,8 @@ class Decoder(object):
                 s = ba.decode('cp1251', errors='replace')
             except UnicodeDecodeError:
                 s = "<bad name>"
+            except LookupError:  # kivy's p4a blacklists nonstandrad encodings by default, see blacklist.txt
+                s = "<wrong program build>"
         return s.strip()
 
     def parse_mf(self, ci, cl, cd):
