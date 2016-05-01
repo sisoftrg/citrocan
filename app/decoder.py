@@ -2,6 +2,10 @@
 # Copyright (c) 2016 sisoftrg
 # The MIT License (MIT)
 
+import sys
+
+PY3 = sys.version_info >= (3, 0)
+
 
 class Decoder(object):
 
@@ -112,7 +116,10 @@ class Decoder(object):
 
     @staticmethod
     def get_str(b):
-        ba = bytes(b).strip(b'\0')
+        if PY3:
+            ba = bytes(b).strip(b'\0')
+        else:
+            ba = bytes(b''.join([chr(x) for x in b if x]))
         try:
             s = ba.decode('utf8')
         except UnicodeDecodeError:

@@ -37,7 +37,7 @@ version.filename = %(source.dir)s/main.py
 
 # (list) Application requirements
 # comma seperated e.g. requirements = sqlite3,kivy
-requirements = kivy,pyserial
+requirements = kivy
 
 # (str) Custom source folders for requirements
 # Sets custom source for any requirements with recipes
@@ -70,7 +70,7 @@ author = ¤ 2016 sisoftrg
 fullscreen = 1
 
 # (list) Permissions
-android.permissions = INTERNET, SYSTEM_ALERT_WINDOW, WRITE_EXTERNAL_STORAGE, WAKE_LOCK
+android.permissions = INTERNET, SYSTEM_ALERT_WINDOW, WRITE_EXTERNAL_STORAGE, WAKE_LOCK, BLUETOOTH, BLUETOOTH_ADMIN
 
 # (int) Android API to use
 #android.api = 19

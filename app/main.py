@@ -6,7 +6,6 @@
 
 import time
 import threading
-import serial
 
 import kivy
 from kivy.app import App
@@ -14,12 +13,21 @@ from kivy.clock import Clock, mainthread
 from kivy.core.window import Window
 from kivy.properties import StringProperty, NumericProperty, BooleanProperty
 
+try:
+    from jnius import autoclass
+    serial = None
+except ImportError:
+    import serial
+    autoclass = None
+
 from decoder import Decoder
 
 kivy.require('1.9.0')
 __version__ = '1.0'
 
-Port = "/dev/rfcomm0"
+BtName = "citr"
+Port = "/dev/ttyUSB0"
+#Port = "/dev/rfcomm0"
 
 
 class Citrocan(App):
@@ -52,7 +60,9 @@ class Citrocan(App):
     def build(self):
         Window.size = (531, 131)
         Clock.schedule_interval(self.update_time, .5)
-        threading.Thread(target=self.get_candata).start()
+        thr = threading.Thread(target=self.get_candata)
+        thr.setDaemon(True)
+        thr.start()
 
     def update_time(self, *_):
         self.d_time = time.strftime("%H %M" if ':' in self.d_time else "%H:%M")
@@ -63,14 +73,13 @@ class Citrocan(App):
         if self.__getattribute__("d_" + var) != val:
             self.__setattr__("d_" + var, val)
 
-    def get_candata(self):
+    def serial_receiver(self, on_recv):
         sp = None
-        dec = Decoder(self.safe_set)
         while not self.stop_ev.is_set():
             if not sp:
+                buf = ''
+                ready = False
                 try:
-                    buf = ''
-                    ready = False
                     sp = serial.Serial(port=Port, baudrate=460800, timeout=1)
                 except (ValueError, serial.SerialException) as e:
                     print("can't open serial:", e)
@@ -95,21 +104,12 @@ class Citrocan(App):
                         break
                     if r == b'\n':
                         # print("got:", buf)
-                        if len(buf) and buf[0] in ('R', 'S'):
-                            try:
-                                flds = buf.split()
-                                cid = int(flds[1], 16)
-                                clen = int(flds[2])
-                                cflds = []
-                                for n in range(clen):
-                                    cflds.append(int(flds[n + 3], 16))
-                                if dec.decode(cid, clen, cflds):
-                                    dec.visualize()
-                            except (TypeError, ValueError, IndexError) as e:
-                                print("can't decode:", buf, e)
-                        elif len(buf) and buf[0] == 'I':
-                            ready = True
-                        buf = ""
+                        if len(buf):
+                            if buf[0] in ('R', 'S'):
+                                on_recv(buf)
+                            elif buf[0] == 'I':
+                                ready = True
+                            buf = ''
                     elif r >= b' ':
                         buf += r.decode()
             else:
@@ -117,6 +117,90 @@ class Citrocan(App):
 
         if sp:
             sp.close()
+
+    def bt_receiver(self, on_recv):
+        BluetoothAdapter = autoclass('android.bluetooth.BluetoothAdapter')
+        #BluetoothDevice = autoclass('android.bluetooth.BluetoothDevice')
+        #BluetoothSocket = autoclass('android.bluetooth.BluetoothSocket')
+        UUID = autoclass('java.util.UUID')
+
+        sock = None
+        while not self.stop_ev.is_set():
+            if not sock:
+                buf = ''
+                send = None
+                recv = None
+                ready = False
+                self.safe_set('alert', "No connection")
+                paired = BluetoothAdapter.getDefaultAdapter().getBondedDevices().toArray()
+                for dev in paired:
+                    if dev.getName() == BtName:
+                        sock = dev.createRfcommSocketToServiceRecord(UUID.fromString("00001101-0000-1000-8000-00805F9B34FB"))
+                        recv = sock.getInputStream()
+                        send = sock.getOutputStream()
+                        print("wait for connection")
+                        try:
+                            sock.connect()
+                        except Exception as e:
+                            sock.close()
+                            sock = None
+                            print("can't connect bluetooth:", e)
+                        break
+
+            if sock and not ready:
+                print("sending init")
+                send.write("i1\r\n")
+                send.flush()
+
+            if sock:
+                while not self.stop_ev.is_set():
+                    try:
+                        r = recv.read()
+                    except Exception as e:
+                        print("can't read from bluetooth:", e)
+                        sock.Close()
+                        sock = None
+                        r = None
+                    if not r:
+                        break
+                    if r == 13:
+                        # print("got:", buf)
+                        if len(buf):
+                            if buf[0] in ('R', 'S'):
+                                on_recv(buf)
+                            elif buf[0] == 'I':
+                                ready = True
+                            buf = ''
+                    elif r >= 32:
+                        buf += chr(r)
+
+            else:
+                time.sleep(1)
+
+        if sock:
+            sock.close()
+
+    def get_candata(self):
+        dec = Decoder(self.safe_set)
+
+        def on_recv(buf):
+            print("recv:", buf)
+            try:
+                flds = buf.split()
+                cid = int(flds[1], 16)
+                clen = int(flds[2])
+                cflds = []
+                for n in range(clen):
+                    cflds.append(int(flds[n + 3], 16))
+                if dec.decode(cid, clen, cflds):
+                    dec.visualize()
+            except (TypeError, ValueError, IndexError) as e:
+                print("can't decode:", buf, e)
+
+        if autoclass:
+            self.bt_receiver(on_recv)
+        else:
+            self.serial_receiver(on_recv)
 
     def on_pause(self):
         return True
