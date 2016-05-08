@@ -19,6 +19,7 @@ class Decoder(object):
     ignition = 2
     rpm = 0
     speed = 0
+    power = 0
     odometer = 0
     out_temp = 0
     message_id = 0
@@ -26,6 +27,7 @@ class Decoder(object):
     vin1 = ""
     vin2 = ""
     vin3 = ""
+    funcs = 0
     silence = False
     source = ""
     srcs = ['---', 'Tuner', 'CD', 'CD Changer', 'Input AUX 1', 'Input AUX 2', 'USB', 'Bluetooth']
@@ -195,12 +197,18 @@ class Decoder(object):
             self.rpm = cd[0] * 256 + (cd[1] >> 3)
             self.speed = cd[2] * 256 + cd[3]
 
+        elif ci == 0x0e6:  # bsi: voltage
+            self.power = cd[5] / 20 + 7.2
+
         elif ci == 0x0f6:  # bsi: info
             self.odometer = cd[2] * 65536 + cd[3] * 256 + cd[4]
             self.out_temp = cd[6] / 2 - 39.5
             self.lamps['reverse'] = bool(cd[7] & 0x80)
             self.lamps['right'] = bool(cd[7] & 0x02)
             self.lamps['left'] = bool(cd[7] & 0x01)
+
+        elif ci == 0x120:  # bsi: warning log
+            pass
 
         elif ci == 0x125:  # track list, multiframe
             dd = self.parse_mf(ci, cl, cd)
@@ -243,6 +251,9 @@ class Decoder(object):
             self.source = self.srcs[(cd[2] >> 4) & 7]
             self.have_changer = bool(cd[1] & 0x10)
             #self.cd_disk = ((cd[1] >> 5) & 3) ^ 1  # for b7?
+
+        elif ci == 0x167:  # display: settings?
+            pass
 
         elif ci == 0x1a1:  # bsi: info messages
             self.show_message = bool(cd[2] & 0x80)
@@ -334,6 +345,9 @@ class Decoder(object):
         elif ci == 0x2b6:  # bsi: last 8 vin digits
             self.vin3 = bytes(cd[:8]).decode()
 
+        elif ci == 0x2e1:  # bsi: status of functions
+            self.funcs = (cd[0] << 16) + (cd[1] << 8) + cd[2]
+
         elif ci == 0x2e5:  # hz
             pass
 
@@ -342,6 +356,9 @@ class Decoder(object):
 
         elif ci == 0x336:  # bsi: first 3 vin letters
             self.vin1 = bytes(cd[:3]).decode()
+
+        elif ci == 0x361:  # bsi: car settings
+            pass
 
         elif ci == 0x365:  # cd disk info
             self.cd_tracks = cd[0]
@@ -402,7 +419,7 @@ class Decoder(object):
 
         elif cd:
             self.ss('icon', self.cd_mp3 and 'cdmp3' or 'cdaudio')
-            self.ss('name', self.cd_disk in (1, 3) and ('Track %d/%d' % (self.track_num, self.cd_tracks)) or "Wait...")
+            self.ss('name', self.source == 'CD' and (self.cd_disk in (1, 3) and ('Track %d/%d' % (self.track_num, self.cd_tracks)) or "Wait...") or "CD Changer")
             self.ss('title', self.track_name + (self.track_author and (" / %s" % self.track_author) or ""))
 
         else:
@@ -429,3 +446,26 @@ class Decoder(object):
         self.ss('volbar', self.enabled and self.volume or 0)
         self.ss('temp', self.out_temp and ("[b]%.0f[/b]°C" % self.out_temp) or "[b]——[/b]°F")
         self.ss('alert', self.show_message and self.msgs.get(self.message_id, "") or "")
+
+    def visualize_test(self):
+        self.ss('icon', "icon")
+        self.ss('name', "Name")
+        self.ss('title', "Title")
+        self.ss('band', "Band")
+        self.ss('info', "Info")
+        self.ss('memch', "0")
+        self.ss('dx', "DX")
+        self.ss('ta', "TA")
+        self.ss('ta_ok', True)
+        self.ss('pty', "PTY")
+        self.ss('pty_ok', True)
+        self.ss('ptyname', "PtyName")
+        self.ss('reg', "REG")
+        self.ss('rds', "RDS")
+        self.ss('rds_ok', True)
+        self.ss('rdtxt_rnd', "RDTXT")
+        self.ss('loud', "LOUD")
+        self.ss('vol', "Vol: [b]15[/b]")
+        self.ss('volbar', 15)
+        self.ss('temp', "[b]33[/b]°C")
+        self.ss('alert', "")

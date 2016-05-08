@@ -58,7 +58,7 @@ class Citrocan(App):
     d_alert = StringProperty()
 
     def build(self):
-        Window.size = (531, 131)
+        Window.size = (1024, 252)
         Clock.schedule_interval(self.update_time, .5)
         thr = threading.Thread(target=self.get_candata)
         thr.setDaemon(True)
@@ -120,8 +120,6 @@ class Citrocan(App):
 
     def bt_receiver(self, on_recv):
         BluetoothAdapter = autoclass('android.bluetooth.BluetoothAdapter')
-        #BluetoothDevice = autoclass('android.bluetooth.BluetoothDevice')
-        #BluetoothSocket = autoclass('android.bluetooth.BluetoothSocket')
         UUID = autoclass('java.util.UUID')
 
         sock = None
@@ -149,7 +147,7 @@ class Citrocan(App):
 
             if sock and not ready:
                 print("sending init")
-                send.write("i1\r\n")
+                send.write("i0\r\n")
                 send.flush()
 
             if sock:
@@ -182,9 +180,10 @@ class Citrocan(App):
 
     def get_candata(self):
         dec = Decoder(self.safe_set)
+        dec.visualize()
 
         def on_recv(buf):
-            print("recv:", buf)
+            # print("recv:", buf)
             try:
                 flds = buf.split()
                 cid = int(flds[1], 16)
