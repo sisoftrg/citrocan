@@ -9,7 +9,7 @@ import threading
 
 import kivy
 from kivy.app import App
-from kivy.clock import Clock, mainthread
+from kivy.clock import Clock
 from kivy.core.window import Window
 from kivy.properties import StringProperty, NumericProperty, BooleanProperty
 
@@ -65,7 +65,7 @@ class Citrocan(App):
         Window.size = (1024, 600)
         self.dec = Decoder(self.prop_set)
         Clock.schedule_interval(self.update_time, .5)
-        Clock.schedule_interval(self.visualize, .2)
+        Clock.schedule_interval(self.visualize, .1)
         thr = threading.Thread(target=self.get_candata)
         thr.setDaemon(True)
         thr.start()
@@ -83,19 +83,14 @@ class Citrocan(App):
         if self.__getattribute__("d_" + var) != val:
             self.__setattr__("d_" + var, val)
 
-    @mainthread
-    def safe_set(self, var, val):
-        if self.__getattribute__("d_" + var) != val:
-            self.__setattr__("d_" + var, val)
-
     def file_receiver(self, on_recv, fname):
-        old_tm = 0
+        old_tm = .0
         sp = open(fname, "r")
         for ln in sp:
             if self.stop_ev.is_set():
                 break
             buf = ln.strip()
-            print("got:", buf)
+            # print("got:", buf)
             if len(buf):
                 tm, _, b = buf.partition(' ')
                 if old_tm:
@@ -104,12 +99,13 @@ class Citrocan(App):
                 if b[0] in ('R', 'S'):
                     on_recv(b)
         sp.close()
+        print("EOF, stop playing.")
 
     def serial_receiver(self, on_recv):
         sp = None
         while not self.stop_ev.is_set():
             if not sp:
-                buf = ''
+                buf = []
                 ready = False
                 try:
                     sp = serial.Serial(port=Port, baudrate=460800, timeout=1)
@@ -137,15 +133,15 @@ class Citrocan(App):
                     if not r:
                         break
                     if r == b'\n':
-                        # print("got:", buf)
+                        # print("got:", ''.join(buf))
                         if len(buf):
                             if buf[0] in ('R', 'S'):
-                                on_recv(buf)
+                                on_recv(''.join(buf))
                             elif buf[0] == 'I':
                                 ready = True
-                            buf = ''
+                            buf = []
                     elif r >= b' ':
-                        buf += r.decode()
+                        buf.append(r.decode())
             else:
                 time.sleep(1)
 
@@ -159,7 +155,7 @@ class Citrocan(App):
         sock = None
         while not self.stop_ev.is_set():
             if not sock:
-                buf = ''
+                buf = []
                 send = None
                 recv = None
                 ready = False
@@ -198,15 +194,15 @@ class Citrocan(App):
                     if not r:
                         break
                     if r == 13:
-                        # print("got:", buf)
+                        # print("got:", ''.join(buf))
                         if len(buf):
                             if buf[0] in ('R', 'S'):
-                                on_recv(buf)
+                                on_recv(''.join(buf))
                             elif buf[0] == 'I':
                                 ready = True
-                            buf = ''
+                            buf = []
                     elif r >= 32:
-                        buf += chr(r)
+                        buf.append(chr(r))
 
             else:
                 time.sleep(1)
