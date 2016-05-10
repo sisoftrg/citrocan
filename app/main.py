@@ -28,10 +28,13 @@ __version__ = '1.0'
 BtName = "citr"
 Port = "/dev/ttyUSB0"
 #Port = "/dev/rfcomm0"
+FromFile = None  # "../cl-start"
 
 
 class Citrocan(App):
 
+    dec = None
+    update = False
     stop_ev = threading.Event()
     d_time = StringProperty()
     d_date = StringProperty()
@@ -56,10 +59,13 @@ class Citrocan(App):
     d_icon = StringProperty("icon")
     d_volbar = NumericProperty()
     d_alert = StringProperty()
+    d_debug = StringProperty()
 
     def build(self):
-        Window.size = (1024, 252)
+        Window.size = (1024, 600)
+        self.dec = Decoder(self.prop_set)
         Clock.schedule_interval(self.update_time, .5)
+        Clock.schedule_interval(self.visualize, .2)
         thr = threading.Thread(target=self.get_candata)
         thr.setDaemon(True)
         thr.start()
@@ -68,10 +74,36 @@ class Citrocan(App):
         self.d_time = time.strftime("%H %M" if ':' in self.d_time else "%H:%M")
         self.d_date = time.strftime("%a %d/%m/%Y")
 
+    def visualize(self, *_):
+        if self.dec and self.update:
+            self.update = False
+            self.dec.visualize()
+
+    def prop_set(self, var, val):
+        if self.__getattribute__("d_" + var) != val:
+            self.__setattr__("d_" + var, val)
+
     @mainthread
     def safe_set(self, var, val):
         if self.__getattribute__("d_" + var) != val:
             self.__setattr__("d_" + var, val)
+
+    def file_receiver(self, on_recv, fname):
+        old_tm = 0
+        sp = open(fname, "r")
+        for ln in sp:
+            if self.stop_ev.is_set():
+                break
+            buf = ln.strip()
+            print("got:", buf)
+            if len(buf):
+                tm, _, b = buf.partition(' ')
+                if old_tm:
+                    time.sleep(float(tm) - old_tm)
+                old_tm = float(tm)
+                if b[0] in ('R', 'S'):
+                    on_recv(b)
+        sp.close()
 
     def serial_receiver(self, on_recv):
         sp = None
@@ -83,7 +115,9 @@ class Citrocan(App):
                     sp = serial.Serial(port=Port, baudrate=460800, timeout=1)
                 except (ValueError, serial.SerialException) as e:
                     print("can't open serial:", e)
-                    self.safe_set('alert', "No connection")
+                    if self.dec.connected:
+                        self.dec.connected = False
+                        self.update = True
 
             if sp and not ready:
                 try:
@@ -129,7 +163,9 @@ class Citrocan(App):
                 send = None
                 recv = None
                 ready = False
-                self.safe_set('alert', "No connection")
+                if self.dec.connected:
+                    self.dec.connected = False
+                    self.update = True
                 paired = BluetoothAdapter.getDefaultAdapter().getBondedDevices().toArray()
                 for dev in paired:
                     if dev.getName() == BtName:
@@ -179,8 +215,8 @@ class Citrocan(App):
             sock.close()
 
     def get_candata(self):
-        dec = Decoder(self.safe_set)
-        dec.visualize()
+        self.dec.connected = False
+        self.update = True
 
         def on_recv(buf):
             # print("recv:", buf)
@@ -191,12 +227,15 @@ class Citrocan(App):
                 cflds = []
                 for n in range(clen):
                     cflds.append(int(flds[n + 3], 16))
-                if dec.decode(cid, clen, cflds):
-                    dec.visualize()
+                if self.dec and self.dec.decode(cid, clen, cflds):
+                    self.dec.connected = True
+                    self.update = True
             except (TypeError, ValueError, IndexError) as e:
                 print("can't decode:", buf, e)
 
-        if autoclass:
+        if FromFile:
+            self.file_receiver(on_recv, FromFile)
+        elif autoclass:
             self.bt_receiver(on_recv)
         else:
             self.serial_receiver(on_recv)

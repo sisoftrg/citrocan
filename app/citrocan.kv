@@ -211,6 +211,16 @@ FloatLayout:
     color: .9, .9, 1, 1
     font_size: 38
     text: app.d_alert
-    text_size: 902, None
+    text_size: 902, 408
     halign: "center"
     opacity: 1 if app.d_alert else 0
+
+  Label:
+    pos: 15, 280
+    size_hint: None, None
+    size: self.texture_size
+    color: 0, 0, 0, 1
+    font_size: 24
+    markup: True
+    text: app.d_debug
+    text_size: 980, 300

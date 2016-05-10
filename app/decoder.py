@@ -9,13 +9,14 @@ PY3 = sys.version_info >= (3, 0)
 
 class Decoder(object):
 
+    connected = False
     cb = {}
     mfs = {}
     lamps = {}
     economy = False
     enabled = False
     lighting = False
-    brightness = 0x1c
+    brightness = 0x0c
     ignition = 2
     rpm = 0
     speed = 0
@@ -207,8 +208,8 @@ class Decoder(object):
             self.lamps['right'] = bool(cd[7] & 0x02)
             self.lamps['left'] = bool(cd[7] & 0x01)
 
-        elif ci == 0x120:  # bsi: warning log
-            pass
+        #elif ci == 0x120:  # bsi: warning log
+        #    pass
 
         elif ci == 0x125:  # track list, multiframe
             dd = self.parse_mf(ci, cl, cd)
@@ -242,8 +243,8 @@ class Decoder(object):
             self.lamps['lefti'] = bool(cd[4] & 0x04)
             self.lamps['righti'] = bool(cd[4] & 0x02)
 
-        elif ci == 0x131:  # cmd to cd changer
-            pass
+        #elif ci == 0x131:  # cmd to cd changer
+        #    pass
 
         elif ci == 0x165:  # radio status
             self.enabled = bool(cd[0] & 0x80)
@@ -252,8 +253,8 @@ class Decoder(object):
             self.have_changer = bool(cd[1] & 0x10)
             #self.cd_disk = ((cd[1] >> 5) & 3) ^ 1  # for b7?
 
-        elif ci == 0x167:  # display: settings?
-            pass
+        #elif ci == 0x167:  # display: settings?
+        #    pass
 
         elif ci == 0x1a1:  # bsi: info messages
             self.show_message = bool(cd[2] & 0x80)
@@ -264,8 +265,8 @@ class Decoder(object):
             self.volume = cd[0] & 0x1f
             self.vol_change = bool(cd[0] & 0x80)
 
-        elif ci == 0x1d0:  # climate: control info
-            pass
+        #elif ci == 0x1d0:  # climate: control info
+        #    pass
 
         elif ci == 0x1e0:  # radio settings
             self.track_intro = bool(cd[0] & 0x20)
@@ -298,8 +299,8 @@ class Decoder(object):
             self.rkeys['src'] = bool(cd[0] & 0x02)
             self.rkeys['scroll'] = cd[1]
 
-        elif ci == 0x221:  # trip computer
-            pass
+        #elif ci == 0x221:  # trip computer
+        #    pass
 
         elif ci == 0x225:  # radio freq
             if cl == 6:  # b7, from autowp docs
@@ -336,8 +337,8 @@ class Decoder(object):
             pc = cd[3] & 0x1f
             self.pty_cur = self.pty_mode in (1, 2) and pc and self.ptys.get(pc, "Unk:" + hex(pc)) or ""
 
-        elif ci == 0x276:  # bsi: date and time
-            pass
+        #elif ci == 0x276:  # bsi: date and time
+        #    pass
 
         elif ci == 0x2a5:  # rds title
             self.rds_name = self.get_str(cd) if cd[0] != 0 else None
@@ -348,8 +349,8 @@ class Decoder(object):
         elif ci == 0x2e1:  # bsi: status of functions
             self.funcs = (cd[0] << 16) + (cd[1] << 8) + cd[2]
 
-        elif ci == 0x2e5:  # hz
-            pass
+        #elif ci == 0x2e5:  # hz
+        #    pass
 
         elif ci == 0x325:  # cd tray info
             self.cd_disk = cd[1] & 0x83
@@ -357,8 +358,8 @@ class Decoder(object):
         elif ci == 0x336:  # bsi: first 3 vin letters
             self.vin1 = bytes(cd[:3]).decode()
 
-        elif ci == 0x361:  # bsi: car settings
-            pass
+        #elif ci == 0x361:  # bsi: car settings
+        #    pass
 
         elif ci == 0x365:  # cd disk info
             self.cd_tracks = cd[0]
@@ -388,15 +389,19 @@ class Decoder(object):
             self.rkeys['right'] = bool(cd[5] & 0x04)
             self.rkeys['left'] = bool(cd[5] & 0x01)
 
-        elif ci == 0x520:  # hz
-            pass
+        #elif ci == 0x520:  # hz
+        #    pass
 
-        elif ci == 0x5e0:  # hw/sw radio info
-            pass
+        #elif ci == 0x5e0:  # hw/sw radio info
+        #    pass
+
+        else:
+            return False
 
         return True
 
     def visualize(self):
+
         tuner = self.source == 'Tuner' and self.enabled
         cd = self.source in ('CD', 'CD Changer') and self.enabled
         aux = 'AUX' in self.source and self.enabled
@@ -445,7 +450,9 @@ class Decoder(object):
         self.ss('vol', self.enabled and ("Vol: [b]%d[/b]" % self.volume) or "")
         self.ss('volbar', self.enabled and self.volume or 0)
         self.ss('temp', self.out_temp and ("[b]%.0f[/b]°C" % self.out_temp) or "[b]——[/b]°F")
-        self.ss('alert', self.show_message and self.msgs.get(self.message_id, "") or "")
+        self.ss('alert', not self.connected and "No connection" or (self.show_message and self.msgs.get(self.message_id, "") or ""))
+        self.ss('debug', "rpm=%d speed=%d\npower=%dV odometer=%d\neconomy=%d lighting=%d bright=%d ignition=%d funcs=%06x\n\nlamps=%s\n\nkeys=%s" % (
+                         self.rpm, self.speed, self.power, self.odometer, self.economy, self.lighting, self.brightness, self.ignition, self.funcs, str(self.lamps), str(self.rkeys)))
 
     def visualize_test(self):
         self.ss('icon', "icon")
@@ -469,3 +476,4 @@ class Decoder(object):
         self.ss('volbar', 15)
         self.ss('temp', "[b]33[/b]°C")
         self.ss('alert', "")
+        self.ss('debug', "some debug info")
