@@ -62,10 +62,10 @@ class Citrocan(App):
     d_debug = StringProperty()
 
     def build(self):
-        Window.size = (1024, 600)
+        Window.size = (1024, 520)
         self.dec = Decoder(self.prop_set)
         Clock.schedule_interval(self.update_time, .5)
-        Clock.schedule_interval(self.visualize, .1)
+        Clock.schedule_interval(self.visualize, .4)
         thr = threading.Thread(target=self.get_candata)
         thr.setDaemon(True)
         thr.start()
@@ -117,7 +117,7 @@ class Citrocan(App):
 
             if sp and not ready:
                 try:
-                    sp.write("i1\r\n".encode())
+                    sp.write("i0\r\n".encode())
                 except serial.SerialTimeoutException as e:
                     print("can't write to serial:", e)
                     time.sleep(1)

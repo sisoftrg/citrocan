@@ -451,7 +451,7 @@ class Decoder(object):
         self.ss('volbar', self.enabled and self.volume or 0)
         self.ss('temp', self.out_temp and ("[b]%.0f[/b]°C" % self.out_temp) or "[b]——[/b]°F")
         self.ss('alert', not self.connected and "No connection" or (self.show_message and self.msgs.get(self.message_id, "") or ""))
-        self.ss('debug', "rpm=%d speed=%d\npower=%dV odometer=%d\neconomy=%d lighting=%d bright=%d ignition=%d funcs=%06x\n\nlamps=%s\n\nkeys=%s" % (
+        self.ss('debug', "rpm=%d speed=%d power=%dV odometer=%d\neconomy=%d lighting=%d bright=%d ignition=%d funcs=%06x\n\nlamps=%s\n\nkeys=%s" % (
                          self.rpm, self.speed, self.power, self.odometer, self.economy, self.lighting, self.brightness, self.ignition, self.funcs, str(self.lamps), str(self.rkeys)))
 
     def visualize_test(self):
