@@ -15,10 +15,9 @@ class Decoder(object):
             id = hex(id)
         if id in self.supported_ids:
             f = getattr(self, 'id_%s' % id)
-            if f:
-                f(data)
-            else:
-                self.id_else(id, data)
+            f(data)
+        else:
+            self.id_else(id, data)
 
     def id_else(self, id, data):
         pass
