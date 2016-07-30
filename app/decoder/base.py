@@ -4,6 +4,7 @@ from six import PY3
 
 
 class Decoder(object):
+    mfs = {}
 
     def __new__(cls, *args, **kwargs):
         instance = object.__new__(cls, *args)
@@ -46,6 +47,31 @@ class Decoder(object):
             except LookupError:
                 s = "<wrong program build>"
         return s.strip()
+
+    def parse_mf(self, id, data_len, data):
+        typ = (data[0] & 0xf0) >> 4
+        arg = data[0] & 0x0f
+        if typ == 0:  # single
+           return (arg, data[1:min(1 + arg, data_len)])
+        elif typ == 1:  # first
+            fl = arg * 256 + data[1]
+            el = fl - (data_len - 2)
+            self.mfs[id] = [fl, el, data[2:data_len]]
+        elif typ == 2:  # consecutive. TODO: check frame order!
+            if id not in self.mfs:
+                return None
+            el = self.mfs[id][1]
+            if el > data_len - 1:
+                self.mfs[id][1] -= data_len - 1
+                self.mfs[id][2] += data[1:data_len]
+            else:
+                fl = self.mfs[id][0]
+                d = self.mfs[id][2] + data[1:min(data_len, el + 2)]
+                del self.mfs[id]
+                return (fl, d)
+        elif typ == 3:  # flow, packets not for us
+            pass
+        return None
 
 
 class DecoderGroup(object):
