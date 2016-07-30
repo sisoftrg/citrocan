@@ -20,7 +20,7 @@ except ImportError:
     import serial
     autoclass = None
 
-from decoder import Decoder
+from kivy_decoder import KivyDecoder as Decoder
 
 kivy.require('1.9.0')
 __version__ = '1.0'
