@@ -93,7 +93,7 @@ class DecoderGroup(object):
             raise AttributeError
         for decoder in self.decoders:
             attr = getattr(decoder, item, None)
-            if attr:
+            if attr is not None:
                 return attr
 
     @property
