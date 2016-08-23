@@ -9,7 +9,7 @@ class KivyDecoder(DecoderGroup):
         super(KivyDecoder, self).__init__(
             DEFAULT_DECODERS, proxy_attributes=True)
         self.ss = ss
-        self.connected = False
+        self.connected = True
 
     def visualize(self):
 

@@ -20,6 +20,16 @@ class RD45Decoder(Decoder):
 
     ambs = {0x03: 'None', 0x07: 'Classical', 0x0b: 'Jazz-Blues',
             0x0f: 'Pop-Rock', 0x13: 'Vocal', 0x17: 'Techno'}
+
+    ptys = {0x00: 'Deactivate', 0x01: 'News', 0x02: 'Affairs', 0x03: 'Info',
+            0x04: 'Sport', 0x05: 'Educate', 0x06: 'Drama', 0x07: 'Culture',
+            0x08: 'Science', 0x09: 'Varied', 0x0A: 'Pop M', 0x0B: 'Rock M',
+            0x0C: 'Easy M', 0x0D: 'Light M', 0x0E: 'Classics', 0x0F: 'Other M',
+            0x10: 'Weather', 0x11: 'Finance', 0x12: 'Children', 0x13: 'Social',
+            0x14: 'Religion', 0x15: 'Phone In', 0x16: 'Travel',
+            0x17: 'Leisure', 0x18: 'Jazz', 0x19: 'Country', 0x1A: 'Nation M',
+            0x1B: 'Oldies', 0x1C: 'Folk M', 0x1D: 'Document'}
+
     rkeys = {}
 
     bands = ['---', ' FM1', ' FM2', 'DAB', 'FMAST', 'AM', 'AMLW', '---']
@@ -189,10 +199,10 @@ class RD45Decoder(Decoder):
         self.rkeys['trip'] = bool(data[1] & 0x40)
         self.rkeys['mode'] = bool(data[1] & 0x10)
         self.rkeys['audio'] = bool(data[1] & 0x01)
-        self.rkeys['ok'] = bool(data[2] & 0x40)
-        self.rkeys['esc'] = bool(data[2] & 0x10)
-        self.rkeys['dark'] = bool(data[2] & 0x04)
-        self.rkeys['up'] = bool(data[5] & 0x40)
-        self.rkeys['down'] = bool(data[5] & 0x10)
-        self.rkeys['right'] = bool(data[5] & 0x04)
-        self.rkeys['left'] = bool(data[5] & 0x01)
+        # self.rkeys['ok'] = bool(data[2] & 0x40)
+        # self.rkeys['esc'] = bool(data[2] & 0x10)
+        # self.rkeys['dark'] = bool(data[2] & 0x04)
+        # self.rkeys['up'] = bool(data[5] & 0x40)
+        # self.rkeys['down'] = bool(data[5] & 0x10)
+        # self.rkeys['right'] = bool(data[5] & 0x04)
+        # self.rkeys['left'] = bool(data[5] & 0x01)

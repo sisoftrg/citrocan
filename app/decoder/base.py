@@ -8,8 +8,8 @@ class Decoder(object):
 
     def __new__(cls, *args, **kwargs):
         instance = object.__new__(cls, *args)
-        ids = [prop_name for prop_name, prop in instance.__dict__.items()
-               if callable(prop) and prop_name.startswith('id_') and prop_name != 'id_else']
+        ids = [prop_name[3:] for prop_name in dir(instance)
+               if callable(getattr(instance, prop_name, None)) and prop_name.startswith('id_') and prop_name != 'id_else']
         instance.supported_ids = ids
         return instance
 
@@ -100,6 +100,6 @@ class DecoderGroup(object):
     def decoders(self):
         return [getattr(self, name) for name in self._decoders]
 
-    def decode(self, id, data, data_len):
+    def decode(self, id, data_len, data):
         for decoder in self.decoders:
             decoder.decode(id, data, data_len)
