@@ -178,3 +178,21 @@ class RD45Decoder(Decoder):
         self.rkeys['voldn'] = bool(data[0] & 0x04)
         self.rkeys['src'] = bool(data[0] & 0x02)
         self.rkeys['scroll'] = data[1]
+
+    def id_0x3e5(self, data):
+        """
+        Keypad
+        """
+        self.rkeys['menu'] = bool(data[0] & 0x40)
+        self.rkeys['tel'] = bool(data[0] & 0x10)
+        self.rkeys['clim'] = bool(data[0] & 0x01)
+        self.rkeys['trip'] = bool(data[1] & 0x40)
+        self.rkeys['mode'] = bool(data[1] & 0x10)
+        self.rkeys['audio'] = bool(data[1] & 0x01)
+        self.rkeys['ok'] = bool(data[2] & 0x40)
+        self.rkeys['esc'] = bool(data[2] & 0x10)
+        self.rkeys['dark'] = bool(data[2] & 0x04)
+        self.rkeys['up'] = bool(data[5] & 0x40)
+        self.rkeys['down'] = bool(data[5] & 0x10)
+        self.rkeys['right'] = bool(data[5] & 0x04)
+        self.rkeys['left'] = bool(data[5] & 0x01)
