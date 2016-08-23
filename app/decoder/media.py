@@ -11,7 +11,7 @@ class RD45Decoder(Decoder):
                  'track_name', 'rdtxt', 'pty_scan', 'radio_scan', 'rds_scan',
                  'ast_scan', 'show_radios', 'radio_mem', 'radio_band',
                  'radio_freq', 'cd_disk', 'cd_tracks', 'cd_len', 'cd_mp3',
-                 'track_num', 'track_len', 'track_time']
+                 'track_num', 'track_len', 'track_time', 'rkeys']
 
     source = ''
 
@@ -20,6 +20,7 @@ class RD45Decoder(Decoder):
 
     ambs = {0x03: 'None', 0x07: 'Classical', 0x0b: 'Jazz-Blues',
             0x0f: 'Pop-Rock', 0x13: 'Vocal', 0x17: 'Techno'}
+    rkeys = {}
 
     bands = ['---', ' FM1', ' FM2', 'DAB', 'FMAST', 'AM', 'AMLW', '---']
 
@@ -166,3 +167,14 @@ class RD45Decoder(Decoder):
             else '--:--'
         self.track_time = '%02d:%02d' % (data[3], data[4]) if data[3] != 0xff \
             else '--:--'
+
+    def id_0x21f(self, data):
+        """
+        Remote keys under wheel
+        """
+        self.rkeys['fwd'] = bool(data[0] & 0x80)
+        self.rkeys['rew'] = bool(data[0] & 0x40)
+        self.rkeys['volup'] = bool(data[0] & 0x08)
+        self.rkeys['voldn'] = bool(data[0] & 0x04)
+        self.rkeys['src'] = bool(data[0] & 0x02)
+        self.rkeys['scroll'] = data[1]

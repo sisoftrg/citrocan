@@ -2,7 +2,19 @@ from decoder.base import Decoder
 
 
 class BSIDecoder(Decoder):
+    __slots__ = ['economy', 'lighting', 'brightness', 'ignition', 'funcs',
+                 'lamps', 'rpm', 'speed', 'odometer', 'power', 'out_temp',
+                 'show_message', 'message_id', 'vin1', 'vin2', 'vin3']
+
     funcs = 0
+    rpm = 0
+    speed = 0
+    odometer = 0
+    power = 0
+    economy = 0
+    lighting = 0
+    brightness = 0
+    ignition = 0
     lamps = {}
 
     def id_0x036(self, data):
@@ -90,6 +102,9 @@ class BSIDecoder(Decoder):
         self.vin3 = bytes(data[:8]).decode()
 
     def id_0x2e1(self, data):
+        """
+        Status of functions
+        """
         self.funcs = (data[0] << 16) + (data[1] << 8) + data[2]
 
     def id_0x361(self, data):
