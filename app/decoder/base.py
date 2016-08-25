@@ -3,7 +3,14 @@ import importlib
 from six import PY3
 
 
+class CallbackException(Exception):
+    """
+    Raised when any Exception raised in call back
+    """
+
+
 class Decoder(object):
+    _callbacks = {}
     mfs = {}
 
     def __new__(cls, *args, **kwargs):
@@ -16,15 +23,24 @@ class Decoder(object):
     def __setitem__(self, key, value):
         self.decode(key, value)
 
+    def fetch_id(self, id):
+        if isinstance(id, int):
+            id = hex(id)
+        return id
+
     def decode(self, id, data, data_len=None):
         if not data_len:
             data_len = len(data)
         data = data[:data_len]
-        if isinstance(id, int):
-            id = hex(id)
+        id = self.fetch_id(id)
         if id in self.supported_ids:
             f = getattr(self, 'id_%s' % id)
             f(data)
+            for callback in self._callbacks.get(id, []):
+                try:
+                    callback(self, id, data)
+                except:
+                    raise CallbackException
         else:
             self.id_else(id, data)
 
@@ -73,6 +89,19 @@ class Decoder(object):
             pass
         return None
 
+    def on(self, id, callback):
+        """
+        Start listen for message with given id. Call callback when id has parsed
+        """
+        id = self.fetch_id(id)
+        self._callbacks.setdefault(id, []).append(callback)
+
+    def off(self, id, callback):
+        """
+        Stop listen for message with given id and given callback
+        """
+        id = self.fetch_id(id)
+        self._callbacks.setdefault(id, []).remove(callback)
 
 class DecoderGroup(object):
 
