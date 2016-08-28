@@ -12,6 +12,34 @@ class BSIDecoder(Decoder):
     brightness = 0
     ignition = 0
     lamps = {}
+    out_temp = 0
+    show_message = False
+    message_id = 0
+    vin1 = ""
+    vin2 = ""
+    vin3 = ""
+
+    msgs = {0x00: 'Diagnosis ok', 0x01: 'Engine temperature too high', 0x03: 'Coolant circuit level too low', 0x04: 'Check engine oil level', 0x05: 'Engine oil pressure too low',
+            0x08: 'Braking system faulty', 0x0A: 'Air suspension ok (picture)', 0x0B: 'Door, boot, bonnet and fuel tank open', 0x0D: 'Tyre puncture(s) detected',
+            0x0F: 'Risk of particle filter blocking', 0x11: 'Suspension faulty: max.speed 90 km/h', 0x12: 'Suspension faulty', 0x13: 'Power steering faulty', 0x14: '10km/h!',
+            0x61: 'Handbrake on', 0x62: 'Handbrake off', 0x64: 'Handbrake control faulty: auto handbrake activated', 0x67: 'Brake pads worn', 0x68: 'Handbrake faulty',
+            0x69: 'Mobile deflector faulty', 0x6A: 'ABS braking system faulty', 0x6B: 'ESP / ASR system faulty', 0x6C: 'Suspension faulty', 0x6D: 'Power steering faulty',
+            0x6E: 'Gearbox faulty', 0x6F: 'Cruise control system faulty', 0x73: 'Ambient brightness sensor faulty', 0x74: 'Sidelamp bulb(s) faulty',
+            0x75: 'Automatic headlamp adjustment faulty', 0x76: 'Directional headlamps faulty', 0x78: 'Airbag faulty', 0x79: 'Active bonnet faulty', 0x7A: 'Gearbox faulty',
+            0x7B: 'Apply foot on brake and lever in position "N"', 0x7D: 'Presence of water in diesel fuel filter', 0x7E: 'Engine management system faulty',
+            0x7F: 'Depollution system faulty', 0x81: 'Particle filter additive level too low', 0x83: 'Electronic anti-theft faulty', 0x86: 'Right hand side door faulty',
+            0x87: 'Left hand side door faulty', 0x89: 'Space measuring system faulty', 0x8A: 'Battery charge or electrical supply faulty', 0x8D: 'Tyre pressure(s) too low',
+            0x92: 'Warning!', 0x95: 'Info!', 0x96: 'Info!', 0x97: 'Anti-wander system lane-crossing warning device faulty', 0x9D: 'Foglamp bulb(s) faulty',
+            0x9E: 'Direction indicator(s) faulty', 0xA0: 'Sidelamp bulb(s) faulty', 0xA1: 'Parking lamps active', 0xCD: 'Cruise control not possible: speed too low',
+            0xCE: 'Control activation not possible: enter the speed', 0xD1: 'Active bonnet deployed', 0xD2: 'Front seat belts not fastened',
+            0xD3: 'Rear right hand passenger seat belts fastened', 0xD7: 'Place automatic gearbox in position "P"', 0xD8: 'Risk of ice', 0xD9: 'Handbrake!',
+            0xDE: 'Door, boot, bonnet and fuel tank open', 0xDF: 'Screen wash fluid level too low', 0xE0: 'Fuel level too low', 0xE1: 'Fuel circuit deactivated',
+            0xE3: 'Remote control battery flat', 0xE4: 'Check and re-initialise tyre pressure', 0xE5: 'Tyre pressure(s) not monitored',
+            0xE7: 'High speed, check tyre pressures correct', 0xE8: 'Tyre pressure(s) too low', 0xEA: 'Hands-free starting system faulty',
+            0xEB: 'Starting phase has failed (consult handbook)', 0xEC: 'Prolonged starting in progress', 0xED: 'Starting impossible: unlock the steering',
+            0xEF: 'Remote control detected', 0xF0: 'Diagnosis in progress...', 0xF1: 'Diagnosis completed', 0xF7: 'Rear LH passenger seatbelt unfastened',
+            0xF8: 'Rear center passenger seatbelt unfastened', 0xF9: 'Rear RH passenger seatbelt unfastened'}
+
 
     def id_0x036(self, data):
         """

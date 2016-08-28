@@ -2,6 +2,17 @@ from decoder.base import Decoder
 
 
 class RD45Decoder(Decoder):
+    __slots__ = ['enabled', 'silence', 'have_changer',
+                 'volume', 'vol_change', 'track_intro', 'random', 'repeat',
+                 'rds_alt', 'want_rdtxt', 'balance_lr', 'show_balance_lr',
+                 'balance_rf', 'show_balance_rf', 'bass', 'show_bass', 'treble',
+                 'show_treble', 'loudness', 'show_loudness', 'autovol',
+                 'show_autovol', 'ambience', 'ambience_show', 'track_author',
+                 'track_name', 'rdtxt', 'pty_scan', 'radio_scan', 'rds_scan',
+                 'ast_scan', 'show_radios', 'radio_mem', 'radio_band',
+                 'radio_freq', 'cd_disk', 'cd_tracks', 'cd_len', 'cd_mp3',
+                 'track_num', 'track_len', 'track_time']
+
     source = ''
 
     sources = ['---', 'Tuner', 'CD', 'CD Changer', 'Input AUX 1', 'Input AUX 2',

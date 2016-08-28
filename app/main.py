@@ -87,6 +87,7 @@ class Citrocan(App):
     def file_receiver(self, on_recv, fname):
         old_tm = .0
         sp = open(fname, "r")
+        self.dec.connected = True
         for ln in sp:
             if self.stop_ev.is_set():
                 break
