@@ -20,14 +20,15 @@ except ImportError:
     import serial
     autoclass = None
 
-from decoder import Decoder
+from kivy_decoder import KivyDecoder as Decoder
 
 kivy.require('1.9.0')
 __version__ = '1.0'
 
 BtName = "citr"
-Port = "/dev/ttyUSB0"
+# Port = "/dev/ttyUSB0"
 #Port = "/dev/rfcomm0"
+Port = 'COM13'
 FromFile = None  # "../cl-start"
 
 
@@ -76,12 +77,12 @@ class Citrocan(App):
 
     def visualize(self, *_):
         if self.dec and self.update:
-            self.update = False
+            # self.update = False
             self.dec.visualize()
 
     def prop_set(self, var, val):
         if self.__getattribute__("d_" + var) != val:
-            self.__setattr__("d_" + var, val)
+            self.__setattr__("d_" + var, val or '')
 
     def file_receiver(self, on_recv, fname):
         old_tm = .0
