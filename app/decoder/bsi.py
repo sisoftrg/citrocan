@@ -2,10 +2,6 @@ from decoder.base import Decoder
 
 
 class BSIDecoder(Decoder):
-    __slots__ = ['economy', 'lighting', 'brightness', 'ignition', 'funcs',
-                 'lamps', 'rpm', 'speed', 'odometer', 'power', 'out_temp',
-                 'show_message', 'message_id', 'vin1', 'vin2', 'vin3']
-
     funcs = 0
     rpm = 0
     speed = 0
